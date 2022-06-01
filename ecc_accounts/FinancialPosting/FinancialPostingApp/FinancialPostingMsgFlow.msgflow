@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCallableFlowInvoke.msgnode="ComIbmCallableFlowInvoke.msgnode" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmLabel.msgnode="ComIbmLabel.msgnode" xmlns:CommonServicesLib_Entry.subflow="CommonServicesLib/Entry.subflow" xmlns:CommonServicesLib_ExceptionHandlingSubflow.subflow="CommonServicesLib/ExceptionHandlingSubflow.subflow" xmlns:CommonServicesLib_Exit.subflow="CommonServicesLib/Exit.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore"
+    xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="FinancialPostingMsgFlow.msgflow" nsPrefix="FinancialPostingMsgFlow.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="FinancialPostingMsgFlow" bundleName="FinancialPostingMsgFlow" pluginId="FinancialPostingApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/FinancialPostingApp/icons/full/obj16/FinancialPostingMsgFlow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/FinancialPostingApp/icons/full/obj30/FinancialPostingMsgFlow.gif"/>
+    <composition>
+      <nodes xmi:type="CommonServicesLib_Entry.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="26,34" queueName="FINANCIAL.POSTING.REQ" URLSpecifier="/mw/ecc/accounts/financialposting" validateMaster1="contentAndValue">
+        <translation xmi:type="utility:ConstantString" string="Entry"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_Exit.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="675,34">
+        <translation xmi:type="utility:ConstantString" string="Exit"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ExceptionHandlingSubflow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="103,112">
+        <translation xmi:type="utility:ConstantString" string="ExceptionHandlingSubflow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="333,30" computeExpression="esql://routine/#FinancialPostingMsgFlow_InitCallableFlow.Main">
+        <translation xmi:type="utility:ConstantString" string="InitCallableFlow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmLabel.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="39,250" labelName="RouteToCallableFlow">
+        <translation xmi:type="utility:ConstantString" string="Label"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCallableFlowInvoke.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="225,251" targetApplication="dummyvalue" targetEndpointName="dummyvalue" requestTimeout="180">
+        <translation xmi:type="utility:ConstantString" string="CallableFlowInvoke"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_11" location="425,251" computeExpression="esql://routine/#FinancialPostingMsgFlow_CallableServiceRes.Main">
+        <translation xmi:type="utility:ConstantString" string="CallableServiceRes"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ExceptionHandlingSubflow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_12" location="582,252">
+        <translation xmi:type="utility:ConstantString" string="ExceptionHandler"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.Output2" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.Output1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_10" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_12" sourceNode="FCMComposite_1_11" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmTrace.msgnode="ComIbmTrace.msgnode" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CommonServicesLib/CustomTrace.subflow" nsPrefix="CommonServicesLib_CustomTrace.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="CustomTrace" bundleName="CommonServicesLib/CustomTrace" pluginId="CommonServicesLib"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj16/CustomTrace.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj30/CustomTrace.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="93,184">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="CommonServicesLib/CustomTrace" pluginId="CommonServicesLib"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="379,193">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Output" bundleName="CommonServicesLib/CustomTrace" pluginId="CommonServicesLib"/>
+      </nodes>
+      <nodes xmi:type="ComIbmTrace.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="246,206" destination="file" filePath="/var/mqsi/log/ESBLog/esberrors.log" pattern="=============================================================================================================================================================&#xD;&#xA;&#xD;&#xA;EXCEPTION OCCURED AT : ${CURRENT_TIMESTAMP} &#xD;&#xA;BROKER     : ${BrokerName}&#xD;&#xA;PLATFORM     : ${Family}&#xD;&#xA;EXECUTION GROUP  : ${ExecutionGroupLabel}&#xD;&#xA;SERVICE NAME   :  ${LocalEnvironment.Variables.ServiceName}&#xD;&#xA;SERVICE SUB NAME  :  ${LocalEnvironment.Variables.ServiceSubName}&#xD;&#xA; &#xD;&#xA;MESSAGE BODY                :   ${Body}&#xD;&#xA;EXCEPTION                      : ${ExceptionList}&#xD;&#xA;">
+        <translation xmi:type="utility:ConstantString" string="Trace"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_2" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard>
+      <stickyNote location="266,114">
+        <body xmi:type="utility:ConstantString" string="Update path to PV location&#xA;Promote path and trace mode"/>
+      </stickyNote>
+    </stickyBoard>
+  </eClassifiers>
+</ecore:EPackage>

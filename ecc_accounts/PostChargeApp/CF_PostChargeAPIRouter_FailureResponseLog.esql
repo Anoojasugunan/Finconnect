@@ -1,0 +1,38 @@
+
+
+CREATE COMPUTE MODULE CF_PostChargeAPIRouter_FailureResponseLog
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- AUDIT Purpose 
+		DECLARE replyTime CHARACTER CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS');
+		--
+		DECLARE resString, providerCode, blobErrorMsg  CHARACTER ''; 
+		DECLARE responseData BLOB;
+		DECLARE envLogRef REFERENCE TO Environment.Variables.XMLNSC.ServiceData.AuditEntries;
+		DECLARE PARSNAME CHARACTER FIELDNAME(InputRoot.*[<1]);
+		IF PARSNAME <> 'BLOB' THEN
+		   SET responseData = ASBITSTREAM(InputRoot.*[<1] CCSID 1208);
+		ELSE
+		   SET responseData = InputRoot.BLOB.BLOB;
+		END IF;
+		SET  resString 		= CAST (responseData AS CHARACTER CCSID 1208);
+		SET resString		= REPLACE( resString,'&lt;','<');
+		SET resString		= REPLACE( resString,'&gt;','>');
+		SET providerCode	= SUBSTRING(SUBSTRING( resString BEFORE '</ServerStatusCode>') AFTER '<ServerStatusCode>' );
+		IF providerCode IS NULL or LENGTH(providerCode)	= 0 THEN
+			SET providerCode	= SUBSTRING(SUBSTRING( resString BEFORE '</StatusCode>') AFTER '<StatusCode>' );					
+		END IF;
+						
+		IF EXISTS(InputExceptionList.*[]) THEN
+			CREATE LASTCHILD OF OutputLocalEnvironment.Variables.BitStream DOMAIN('XMLNSC') NAME 'XMLNSC';
+			SET OutputLocalEnvironment.Variables.BitStream.XMLNSC.ExceptionList = InputExceptionList;
+			DECLARE blobError BLOB ASBITSTREAM(OutputLocalEnvironment.Variables.BitStream.XMLNSC.ExceptionList,1208 );
+			SET blobErrorMsg = CAST(blobError AS CHAR CCSID 1208);
+		END IF;
+		-- AUDIT IFX Response 
+		CALL CommonServicesLib.AddProviderResToAudit(envLogRef,InputRoot.*[<1],providerCode,blobErrorMsg,replyTime);
+		-- 
+		RETURN TRUE;
+	END;
+
+END MODULE;

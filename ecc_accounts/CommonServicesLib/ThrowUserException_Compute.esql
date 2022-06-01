@@ -1,0 +1,30 @@
+BROKER SCHEMA CommonServicesLib
+
+
+CREATE COMPUTE MODULE ThrowUserException_Compute
+	DECLARE errorCode EXTERNAL INTEGER 0;
+	DECLARE errorDesc EXTERNAL CHARACTER '';
+
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyEntireMessage();	
+	    SET Environment.Variables.returnCode      = CAST (errorCode AS CHARACTER);
+		SET Environment.Variables.returnCodeDesc  = errorDesc;
+		THROW USER EXCEPTION CATALOG 'ESB' MESSAGE errorCode VALUES(errorDesc);
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

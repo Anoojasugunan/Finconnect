@@ -1,0 +1,142 @@
+BROKER SCHEMA CommonServicesLib
+
+
+DECLARE KEY_DATA1 EXTERNAL CHARACTER '';
+DECLARE KEY_DATA2 EXTERNAL CHARACTER '';
+DECLARE KEY_DATA3 EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE Entry_DataInit
+	DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE inRef, inHdrRef,inReqRef REFERENCE TO InputRoot.XMLNSC.*:eAI_MESSAGE;
+		DECLARE outRootRef REFERENCE TO OutputRoot;
+		MOVE inHdrRef TO inRef.*:eAI_HEADER;
+		MOVE inReqRef TO inRef.*:eAI_BODY.*:eAI_REQUEST.*:*;
+		
+		CREATE FIELD Environment.Variables;
+		DECLARE envRef,envRootRef,envAuditRef 		 REFERENCE TO Environment.Variables;
+		
+		CREATE LASTCHILD OF envRootRef AS envRootRef DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF envRootRef AS envRootRef NAME 'ServiceData';
+		-- BEGIN SourceData
+		SET envRootRef.SourceData.MQMD		= InputRoot.MQMD;
+		SET envRootRef.SourceData.HTTP.HTTPInputHeader		
+											= InputRoot.HTTPInputHeader;
+		SET envRootRef.SourceData.XMLNSC	= InputRoot.XMLNSC;
+		-- END SourceData
+		
+		-- FETCH CONFIG DETAILS
+		SET OutputLocalEnvironment.Variables.Cache.Values[1] = inHdrRef.*:serviceName;
+		DECLARE refValues REFERENCE TO OutputLocalEnvironment.Variables.Cache;
+	/*----	CALL CommonServicesLib.CACHE(inHdrRef.*:serviceName ,'SERVICECONFIG','SELECT * FROM SERVICECONFIG WHERE SERVICE_NAME=?',refValues,envRef);
+		--
+		IF NOT EXISTS(envRef.SERVICECONFIG.{inHdrRef.*:serviceName}[]) THEN
+			SET Environment.Variables.returnCode 		= 1111;
+			SET Environment.Variables.returnCodeDesc 	= 'Invalid Service Configuration';
+			THROW USER EXCEPTION CATALOG 'ESB'  MESSAGE Environment.Variables.returnCode VALUES(Environment.Variables.returnCodeDesc);
+		END IF;
+		SET envRootRef.ServiceConfig.Config[1] =  envRef.SERVICECONFIG.{inHdrRef.*:serviceName}[1];*/
+		DECLARE envConfigRef REFERENCE TO envRootRef.ServiceConfig.Config[1];
+		-- END CONFIG DETAILS
+		
+		-- BEGIN MANAGE CACHE
+		
+		IF inHdrRef.*:serviceName = 'ESB.CACHE.CLEAR' THEN
+			CALL ClearCache();
+			SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+			PROPAGATE TO TERMINAL 'out2'; 
+			RETURN FALSE;
+		END IF;
+		-- END MANAGE CACHE
+		
+		-- BEGIN AUDIT INFO
+		DECLARE blobRequest BLOB ASBITSTREAM(InputRoot.XMLNSC CCSID 1208 );
+        DECLARE blobRequestChar CHAR CAST(blobRequest AS CHAR CCSID 1208);
+		CREATE LASTCHILD OF envRootRef AS envAuditRef NAME 'AuditEntries';	
+		SET envAuditRef.SERVICE_NAME				= TRIM(inHdrRef.*:serviceName);
+		SET envAuditRef.REFERENCE_NUM				= inReqRef.*:referenceNum;
+		SET envAuditRef.REFERENCE_NUM_CONSUMER   	= inReqRef.*:referenceNumConsumer;
+		SET envAuditRef.CHANNEL   					= inHdrRef.*:client;
+		SET envAuditRef.CLIENT_CHANNEL   			= inHdrRef.*:clientChannel;
+		SET envAuditRef.REQUEST_TIME			    = CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS');
+		SET envAuditRef.REQUEST_DATA			    = blobRequestChar;
+		SET envAuditRef.SOURCE_QUEUE 				= InputRoot.MQMD.SourceQueue;
+		SET envAuditRef.MESSAGE_FLOW				= MessageFlowLabel;
+		SET envAuditRef.EXECUTION_GROUP				= ExecutionGroupLabel;
+		SET envAuditRef.BROKER_NAME					= BrokerName;
+		SET envAuditRef.LOG_POINT					= 'ENTRY';
+		SET envAuditRef.RETRY_COUNT					= envConfigRef.RETRY_MAX;
+		SET envAuditRef.TRANSSERVICE				= envConfigRef.TRANS_SERVICE;
+		SET envAuditRef.KEY_DATA1					= KEY_DATA1;
+		SET envAuditRef.KEY_DATA2					= KEY_DATA2;
+		SET envAuditRef.KEY_DATA3					= KEY_DATA3;
+	/*	
+		-- BEGIN DUPLICATE CHECK
+        IF(envConfigRef.DUPLICATE_CHECK = 'Y' OR  envConfigRef.TRANS_SERVICE = 'Y') THEN       
+            SET envRootRef.Data.SERVICELOGGER = PASSTHRU('SELECT * FROM SERVICELOGGER WHERE REFERENCE_NUM =?',
+                                                 inReqRef.*:referenceNum);
+            
+			IF EXISTS(envRootRef.Data.SERVICELOGGER[]) THEN
+				 IF envConfigRef.TRANS_SERVICE = 'Y' THEN
+				 	-- GET THE MESSAGE FROM THE DATABASE
+				    DELETE FIELD OutputRoot.XMLNSC;
+				    IF envRootRef.Data.SERVICELOGGER.RETURN_CODE = '0000' THEN
+				    	SET envAuditRef.REFERENCE_NUM				= inReqRef.*:referenceNum ||':DUP' ||CommonServicesLib.GetNextVal('RefCOMTransId');
+				    	SET envAuditRef.REFERENCE_NUM_CONSUMER   	= inReqRef.*:referenceNum;
+				    	CALL EntryAudit();
+				    	CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(envRootRef.Data.SERVICELOGGER.REPLY_DATA  CCSID 1208);
+				    	PROPAGATE TO TERMINAL 'out2'; 
+				    	RETURN FALSE;
+				    END IF;
+					--
+				 ELSE
+				 	SET envAuditRef.REFERENCE_NUM			 = inReqRef.*:referenceNum ||':DUP' ||CommonServicesLib.GetNextVal('RefCOMTransId');
+				    SET envAuditRef.REFERENCE_NUM_CONSUMER   = inReqRef.*:referenceNum;
+				 	CALL EntryAudit();
+				 	CALL ThrowDuplicate();
+				 END IF;
+			END IF;
+         -- END DUPLICATE CHECK
+		END IF;
+		CALL EntryAudit();*/
+        SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+        RETURN TRUE;
+    END;
+    
+    CREATE PROCEDURE  ThrowDuplicate()
+    BEGIN
+    	SET Environment.Variables.returnCode      = 7190;
+		SET Environment.Variables.returnCodeDesc  = 'Duplicate request. Resend with unique reference number.';
+		THROW USER EXCEPTION CATALOG 'ESB' MESSAGE Environment.Variables.returnCode VALUES(Environment.Variables.returnCodeDesc);
+    END;
+   
+   CREATE PROCEDURE  EntryAudit()
+    BEGIN
+    	---  Send Logging Request To Logging Queue
+    	DECLARE outRootRef REFERENCE TO OutputRoot;
+    	DECLARE envAuditRef 		 REFERENCE TO Environment.Variables.XMLNSC.ServiceData.AuditEntries;
+		CREATE LASTCHILD OF OutputRoot AS outRootRef	DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF outRootRef AS outRootRef NAME 'SERVICE_LOGGER_DATA';
+		SET outRootRef = envAuditRef;	
+		SET OutputLocalEnvironment.Destination.MQ.DestinationData[1].queueName = 'EVENT.LOGGER.IN';
+        PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+        DELETE FIELD OutputRoot.XMLNSC;
+		-- END AUDIT INFO
+    END;
+    
+    CREATE PROCEDURE  ClearCache()
+    BEGIN
+    	--	CLEAR CACHE
+    	DECLARE inReqRef REFERENCE TO InputRoot.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REQUEST.*:*;
+    	DECLARE inTableListRef REFERENCE TO inReqRef.*:tableDetail.*:tableList;
+    	WHILE LASTMOVE(inTableListRef) DO
+    		CALL CommonServicesLib.CLEAR_CACHE(inTableListRef);
+    	MOVE inTableListRef NEXTSIBLING REPEAT TYPE NAME;
+    	END WHILE;
+    	
+		-- END CLEAR CACHE
+    END;
+   
+   
+END MODULE;

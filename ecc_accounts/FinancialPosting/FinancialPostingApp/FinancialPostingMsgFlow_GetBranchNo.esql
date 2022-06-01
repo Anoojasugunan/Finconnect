@@ -1,0 +1,78 @@
+
+
+
+
+CREATE COMPUTE MODULE FinancialPostingMsgFlow_GetBranchNo
+	DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+		SET OutputRoot = InputRoot;
+		DECLARE envRef,envDataRef,envAuditRef REFERENCE TO Environment.Variables;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER;
+
+		MOVE envDataRef TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:financialPostingRequest;
+		MOVE envAuditRef TO envRef.XMLNSC.ServiceData.AuditEntries;
+				
+		-- BEGIN exec dbo.MW_Inqueries							  							
+	--	SET envRef.Temp.TRunningMode[]   = PASSTHRU('exec dbo.MW_Inqueries ?,?,?',4, 0, '');
+	    SET envRef.Temp.TRunningMode[]   = PASSTHRU('SELECT Mode,EffectiveDate,NextEffectiveDate,IsBusinessDay FROM mw_inqueries_4');
+		DECLARE SPRequest CHARACTER 'PASSTHRU(''exec dbo.MW_Inqueries ?,?,?'',4, 0, '''')';
+		
+		SET envRef.Data.RunningMode[1].Mode         	 = envRef.Temp.TRunningMode[1].*[1]; 
+		SET envRef.Data.RunningMode[1].EffectiveDate	 = envRef.Temp.TRunningMode[1].*[2];
+		SET envRef.Data.RunningMode[1].NextEffectiveDate = envRef.Temp.TRunningMode[1].*[3];
+		SET envRef.Data.RunningMode[1].IsBusinessDay	 = envRef.Temp.TRunningMode[1].*[4];
+		
+		--Audit logging 
+--		CALL CommonServicesLib.AUDIT_SP(envAuditRef,SPRequest,
+--												'COREDB','RunningMode',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'),'','0',
+--												'',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'));
+--		-- 	END exec dbo.MW_Inqueries
+
+		SET OutputLocalEnvironment.Variables.BranchNo=envDataRef.ns:branchNo;
+		IF OutputLocalEnvironment.Variables.BranchNo is null THEN
+			-- DECLARE queryStmt CHARACTER 'select c.branch_no from phoenix..dp_acct c where c.acct_no=?';
+			   DECLARE queryStmt CHARACTER 'select c.branch_no from dp_acct c where c.acct_no=?';
+			Declare accountNo CHARACTER envDataRef.ns:debitAccount.ns:acctNumber;
+			Declare accountType CHARACTER envDataRef.ns:acctSubType;
+			IF Environment.Variables.FP.useCreditAccount = 'Y' THEN
+				SET accountNo=envDataRef.ns:creditAccount.ns:acctNumber;
+				SET accountType=envDataRef.ns:creditAccount.ns:acctSubType;
+			END IF;
+			IF accountNo is not null and accountType is not null and accountType <> 'GL' THEN
+
+				SET OutputLocalEnvironment.Variables.FP.ORDERING_CUST[] = PASSTHRU(queryStmt VALUES(accountNo));
+				
+				-- Audit logging
+--				CALL CommonServicesLib.AUDIT_SP(envAuditRef,queryStmt || ',' || accountNo,
+--													'COREDB','branch_no',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'),
+--													'','0','',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'));
+--													
+				SET OutputLocalEnvironment.Variables.BranchNo	=	OutputLocalEnvironment.Variables.FP.ORDERING_CUST.branch_no;
+			END IF;
+			
+		END IF;
+		
+		DELETE FIELD OutputRoot.XMLNSC;
+		SET OutputRoot.XMLNSC.Orchestrator.BranchNo = OutputLocalEnvironment.Variables.BranchNo;
+		SET envRef.Temp.TRunningMode = NULL;
+
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

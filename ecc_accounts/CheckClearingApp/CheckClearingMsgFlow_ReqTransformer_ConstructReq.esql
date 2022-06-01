@@ -1,0 +1,106 @@
+
+
+CREATE COMPUTE MODULE CheckClearingMsgFlow_ConstructReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		
+		SET OutputRoot.Properties = InputRoot.Properties ;
+		
+		IF InputLocalEnvironment.Variables.retCode.ESBERRORCODE = '0000' THEN
+			
+			DECLARE envRef,envDataRef,envPropRef,envMsgRef 		REFERENCE TO Environment.Variables;
+			DECLARE outRef,outrefIFX							REFERENCE TO OutputRoot;
+		
+			MOVE envPropRef TO Environment.Variables.XMLNSC.ServiceData.SourceData;
+			MOVE envRef 	TO envPropRef.XMLNSC.ns:eAI_MESSAGE;		
+			MOVE envMsgRef 	TO envRef.ns:eAI_BODY.ns:eAI_REQUEST.ns:inwardLocalClearingRequest;
+			
+			CREATE LASTCHILD OF OutputRoot	AS outRef	DOMAIN 'XMLNSC';
+	  		CREATE LASTCHILD OF outRef 		AS outRef NAME 'IFX';
+	  		
+			SET outRef.SignonRq.ClientDt	=	envMsgRef.ns:requestTime;
+			--SET outRef.SignonRq.ClientApp=InputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:clientChannel;
+			SET outRef.SignonRq.ClientApp	=	envRef.ns:eAI_HEADER.ns:clientChannel;
+			SET outRef.SignonRq.RqUID		=	envMsgRef.ns:referenceNum;
+			SET outRef.BankSvcRq.RqUID		=	envMsgRef.ns:referenceNum;
+			
+			MOVE outrefIFX  TO outRef.BankSvcRq;  
+			
+			SET outrefIFX."ws.its_InwardChkAddRq".RqUID	=	envMsgRef.ns:referenceNum;
+			
+			IF envMsgRef.ns:forced = 'Y' THEN
+				SET outrefIFX."ws.its_InwardChkAddRq".TrnType	=	'Force Debit';
+			ELSE 
+				SET outrefIFX."ws.its_InwardChkAddRq".TrnType	=	'Normal';
+			END IF;
+			
+			SET outrefIFX."ws.its_InwardChkAddRq".DepAcctId.AcctId		=	envMsgRef.ns:debitAccount.ns:acctNumber;
+			SET outrefIFX."ws.its_InwardChkAddRq".DepAcctIdTo.AcctId	=	envMsgRef.ns:creditAccount.ns:acctNumber;
+			
+			SET outrefIFX."ws.its_InwardChkAddRq".ChkAcceptInfo.CompositeCurAmt.CurAmt.Amt			=	envMsgRef.ns:checkAmt;
+			SET outrefIFX."ws.its_InwardChkAddRq".ChkAcceptInfo.CompositeCurAmt.CurAmt.CurCode		=	envMsgRef.ns:debitAccount.ns:currencyCode;
+			SET outrefIFX."ws.its_InwardChkAddRq".ChkAcceptInfo.CreditMediaChkInfo.ChkDetail.ChkNum	=	envMsgRef.ns:checkNum;
+			
+			SET outrefIFX."ws.its_InwardChkAddRq".Desc			=	envMsgRef.ns:debitAccount.ns:desc;
+			SET outrefIFX."ws.its_InwardChkAddRq".DescTo		=	envMsgRef.ns:creditAccount.ns:desc; --Added for CR account desc on 24Jun2018
+			SET outrefIFX."ws.its_InwardChkAddRq".RefInfo.RefId	=	envMsgRef.ns:referenceNum;
+			SET outrefIFX."ws.its_InwardChkAddRq".OptSupt		=	'ONUS';
+			
+			-- Build IFX Request
+			DECLARE blobMsg BLOB ASBITSTREAM(OutputRoot.*[<1],1208 );
+			DECLARE blobMsgChar CHAR CAST(blobMsg AS CHAR CCSID 1208);
+			DELETE FIELD OutputRoot.XMLNSC;
+			CREATE LASTCHILD OF OutputRoot AS outRef DOMAIN 'XMLNSC';
+			CREATE FIELD outRef.soapenv:Envelope.soapenv:Body AS outRef;
+	 		SET outRef.open:adaptorService.(XMLNSC.CDataField)open:ifxMessage	 = blobMsgChar;
+		
+			RETURN TRUE;
+		ELSE
+			--PROPAGATE TO TERMINAL 'out1' ;			
+			--RETURN FALSE;
+			DECLARE outRespRef REFERENCE TO OutputRoot;		
+		
+			DECLARE envRef,envDataRef,envPropRef,envMsgRef 		REFERENCE TO Environment.Variables;
+			
+			MOVE envPropRef TO Environment.Variables.XMLNSC.ServiceData.SourceData;
+			MOVE envRef 	TO envPropRef.XMLNSC.ns:eAI_MESSAGE;		
+			MOVE envMsgRef 	TO envRef.ns:eAI_BODY.ns:eAI_REQUEST.ns:inwardLocalClearingRequest;		
+			
+			SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER	=	envRef.ns:eAI_HEADER;
+		
+			CREATE FIELD OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REPLY.ns:inwardLocalClearingReply AS outRespRef;	
+		
+			SET outRespRef.ns:referenceNum			=	envMsgRef.ns:referenceNum;		
+			SET outRespRef.ns:referenceNumConsumer	=	envMsgRef.ns:referenceNumConsumer;
+			SET outRespRef.ns:debitAccount			=	envMsgRef.ns:debitAccount;
+			SET outRespRef.ns:debitValueDate		=	envMsgRef.ns:debitValueDate;
+			SET outRespRef.ns:creditAccount			=	envMsgRef.ns:creditAccount;
+			SET outRespRef.ns:creditValueDate		=	envMsgRef.ns:creditValueDate;
+			SET outRespRef.ns:checkNum				=	envMsgRef.ns:checkNum;
+			SET outRespRef.ns:requestTime			=	envMsgRef.ns:requestTime;
+			
+			SET outRespRef.ns:returnStatus.ns:returnCode		=	InputLocalEnvironment.Variables.retCode.ESBERRORCODE;
+			SET outRespRef.ns:returnStatus.ns:returnCodeDesc	=	InputLocalEnvironment.Variables.retCode.ESBERRORCODEMSG;
+			
+			SET outRespRef.ns:returnStatusProvider.ns:returnCodeProvider		=	InputLocalEnvironment.Variables.retCode.PROVIDERERRORCODE;
+			SET outRespRef.ns:returnStatusProvider.ns:returnCodeDescProvider	=	InputLocalEnvironment.Variables.retCode.PROVIDERERRORCODEMSG;
+			
+			RETURN TRUE;
+		END IF;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

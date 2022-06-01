@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:CommonServicesLib_EmailGenerateSubflow.subflow="CommonServicesLib/EmailGenerateSubflow.subflow" xmlns:CommonServicesLib_Exit.subflow="CommonServicesLib/Exit.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CommonServicesLib/CF_ExceptionHandler.subflow" nsPrefix="CommonServicesLib_CF_ExceptionHandler.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="CF_ExceptionHandler" bundleName="CommonServicesLib/CF_ExceptionHandler" pluginId="CommonServicesLib"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj16/CF_ExceptionHandler.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj30/CF_ExceptionHandler.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="105,125">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="CommonServicesLib/CF_ExceptionHandler" pluginId="CommonServicesLib"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="470,90" computeExpression="esql://routine/CommonServicesLib#CF_BuildErrorMessage.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="BuildErrorMessage"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="466,198" computeExpression="esql://routine/CommonServicesLib#CF_BuildFaultMessage.Main" computeMode="all">
+        <translation xmi:type="utility:ConstantString" string="BuildFaultMessage"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_EmailGenerateSubflow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="677,91" msgCode="1299">
+        <translation xmi:type="utility:ConstantString" string="EmailGenerateSubflow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="172,125" computeExpression="esql://routine/CommonServicesLib#CF_SetRouteforErrorHandler.Main" computeMode="all">
+        <translation xmi:type="utility:ConstantString" string="Route Error"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_Exit.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="743,199">
+        <translation xmi:type="utility:ConstantString" string="Exit"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_9" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

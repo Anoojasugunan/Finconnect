@@ -1,0 +1,36 @@
+
+
+DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+CREATE COMPUTE MODULE CF_CheckInward_ReqTransformer
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+	
+		DECLARE inReqRef REFERENCE TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:*;
+		SET OutputRoot.XMLNSC.IFXRq.SignonRq.ClientDt	=	inReqRef.ns:requestTime;
+		
+		SET OutputRoot.XMLNSC.IFXRq.SignonRq.RqUID	=	inReqRef.ns:referenceNum;
+		SET OutputRoot.XMLNSC.IFXRq.BankSvcRq.RqUID	=	inReqRef.ns:referenceNum;
+		
+		DECLARE outReqBankSvcRef REFERENCE TO OutputRoot.XMLNSC.IFXRq.BankSvcRq;
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".RqUID	=	inReqRef.ns:referenceNum;
+		
+		IF inReqRef.ns:forced = 'Y' THEN
+			SET outReqBankSvcRef."ws.its_InwardChkAddRq".TrnType	=	'Force Debit';
+		ELSE 
+			SET outReqBankSvcRef."ws.its_InwardChkAddRq".TrnType	=	'Normal';
+		END IF;
+		
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".DepAcctId.AcctId	=	inReqRef.ns:debitAccount.ns:acctNumber;
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".GLAcctId.AcctId	=	inReqRef.ns:creditAccount.ns:acctNumber;
+		
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".ChkAcceptInfo.CompositeCurAmt.CurAmt.Amt			=	inReqRef.ns:checkAmt;
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".ChkAcceptInfo.CompositeCurAmt.CurAmt.CurCode		=	inReqRef.ns:debitAccount.ns:currencyCode;
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".ChkAcceptInfo.CreditMediaChkInfo.ChkDetail.ChkNum	=	inReqRef.ns:checkNum;
+		
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".Desc			=	inReqRef.ns:debitAccount.ns:desc;
+		SET outReqBankSvcRef."ws.its_InwardChkAddRq".RefInfo.RefId	=	inReqRef.ns:referenceNum;
+		
+		RETURN TRUE;
+	END;
+
+END MODULE;

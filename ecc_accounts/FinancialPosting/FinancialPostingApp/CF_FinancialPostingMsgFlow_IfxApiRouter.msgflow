@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCallableFlowInput.msgnode="ComIbmCallableFlowInput.msgnode" xmlns:ComIbmCallableFlowReply.msgnode="ComIbmCallableFlowReply.msgnode" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmWSRequest.msgnode="ComIbmWSRequest.msgnode" xmlns:CommonServicesLib_ThrowUserException.subflow="CommonServicesLib/ThrowUserException.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CF_FinancialPostingMsgFlow_IfxApiRouter.msgflow" nsPrefix="CF_FinancialPostingMsgFlow_IfxApiRouter.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.OperationName" name="OperationName" defaultValueLiteral="FinancialMessageAdd">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="CF_FinancialPostingMsgFlow_IfxApiRouter" bundleName="CF_FinancialPostingMsgFlow_IfxApiRouter" pluginId="FinancialPostingApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/FinancialPostingApp/icons/full/obj16/CF_FinancialPostingMsgFlow_IfxApiRouter.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/FinancialPostingApp/icons/full/obj30/CF_FinancialPostingMsgFlow_IfxApiRouter.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmCallableFlowInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="45,130" callableInputEndpoint="IfxApi">
+        <translation xmi:type="utility:ConstantString" string="IfxApi"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCallableFlowReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="681,130">
+        <translation xmi:type="utility:ConstantString" string="IfxApiReply"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="152,130" computeExpression="esql://routine/#CF_FinancialPostingMsgFlow_IfxApiRouter_SetDetinationURL.Main" computeMode="all">
+        <translation xmi:type="utility:ConstantString" string="SetDetinationURL"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="332,131" URLSpecifier="https:dummyvalue:80/path" httpVersion="1.1" protocol="TLS">
+        <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="482,130" computeExpression="esql://routine/#CF_FinancialPostingMsgFlow_IfxApiRouter_ConstructRes.Main">
+        <translation xmi:type="utility:ConstantString" string="ConstructRes"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="453,24" computeExpression="esql://routine/#CF_FinancialPostingMsgFlow_IfxApiRouter_ErrorResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="ErrorResponseLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="468,243" computeExpression="esql://routine/#CF_FinancialPostingMsgFlow_IfxApiRouter_FaultResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="FaultResponseLog"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="634,25" errorCode="7020" errorDesc="IFX Request Timeout.">
+        <translation xmi:type="utility:ConstantString" string="ThrowUserException Timeout"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_9" location="637,244" errorCode="7201" errorDesc="HTTP Error Detected">
+        <translation xmi:type="utility:ConstantString" string="Throw HTTP Error "/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_10" location="230,26" errorCode="9022" errorDesc="IFX URL not specified">
+        <translation xmi:type="utility:ConstantString" string="ThrowUserException"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_9" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.OperationName">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.OperationName" bundleName="CF_FinancialPostingMsgFlow_IfxApiRouter" pluginId="FinancialPostingApp"/>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

@@ -1,0 +1,93 @@
+BROKER SCHEMA CommonServicesLib
+
+DECLARE namespace NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+CREATE COMPUTE MODULE BuildFaultMessage
+	DECLARE ns	NAMESPACE namespace;
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE envRef,envDataRef,envSourceRef,envLogRef	 REFERENCE TO Environment.Variables;
+		
+		CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'MQMD';
+		SET OutputRoot.MQMD.Version           = MQMD_CURRENT_VERSION;
+		SET OutputRoot.MQMD.ReplyToQ          = envRef.ServiceData.SourceData.MQMD.ReplyToQ;
+		SET OutputRoot.MQMD.ReplyToQMgr       = envRef.ServiceData.SourceData.MQMD.ReplyToQMgr; 
+		
+		IF EXISTS(envRef.MQRFH2[])
+			THEN
+			SET OutputRoot.MQMD.Format            = 'MQHRF2  ';
+			SET OutputRoot.MQRFH2                 = envRef.ServiceData.SourceData.MQRFH2;		
+		ELSE
+			SET OutputRoot.MQMD.Format            = 'MQSTR   ';
+		END IF;
+		
+		SET OutputRoot.MQMD.CorrelId          = CAST(envRef.ServiceData.SourceData.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.MsgId             = CAST(envRef.ServiceData.SourceData.MQMD.MsgId AS BLOB);
+		--SET MQMD END
+		
+		DECLARE refNum,refNumConsumer CHARACTER '';
+		
+		-- XMLDeclaration		
+		CREATE FIRSTCHILD OF OutputRoot.XMLNSC TYPE XMLNSC.XmlDeclaration;
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)Version = '1.0'; 
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)Encoding = 'UTF-8'; 
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)StandAlone = 'yes';		
+								
+		-- eAI_HEADER		--		
+		MOVE envSourceRef TO envRef.XMLNSC.ServiceData.SourceData.XMLNSC.*:eAI_MESSAGE;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER = envSourceRef.*:eAI_HEADER;
+		SET refNum         = envSourceRef.*:eAI_BODY.*[1].*[1].*:referenceNum;
+		SET refNumConsumer = envSourceRef.*:eAI_BODY.*[1].*[1].*:referenceNumConsumer;	
+				
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:eaiReference = NULL;
+	
+		-- eAI_FAULT			
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNum			= refNum;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNumConsumer 	= refNumConsumer;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNumProvider 	= COALESCE(envSourceRef.*:eAI_BODY.*[1].*[1].*:referenceNumProvider,'NA');
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:requestTime 			= COALESCE(envSourceRef.*:eAI_BODY.*[1].*[1].*:requestTime, FormatCurrentTime('1') );
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:returnStatus.ns:returnCode 	= COALESCE(envRef.returnCode,1201);
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:returnStatus.ns:returnCodeDesc	= COALESCE(envRef.returnCodeDesc,'Generic Exception. Error have been logged');
+		
+		-- For AUDIT Purpose
+		MOVE envDataRef TO  envRef.XMLNSC.AuditEntries;
+ 		CREATE LASTCHILD OF OutputLocalEnvironment.Variables.BitStream DOMAIN('XMLNSC') NAME 'XMLNSC';
+		SET OutputLocalEnvironment.Variables.BitStream.XMLNSC.ExceptionList = InputExceptionList;
+		DECLARE blobError BLOB ASBITSTREAM(OutputLocalEnvironment.Variables.BitStream.XMLNSC.ExceptionList,1208 );
+		DECLARE blobErrorMsg CHAR CAST(blobError AS CHAR CCSID 1208);
+		
+		MOVE envLogRef TO envRef.XMLNSC.ServiceData.AuditEntries;
+		SET  envLogRef.EXCEPTION_DATA	= blobErrorMsg;
+		--
+		IF(envLogRef.DUPLICATE_CHECK = 'Y') THEN   
+            PASSTHRU('UPDATE Database.WBIMUAT3.TRANSACTION_LOGGER
+                          SET IsTransactionFailed = ? WHERE REFERENCE_NUM = ? AND SERVICE_NAME =?',
+                           'Y',refNum, envSourceRef.ns:eAI_HEADER.ns:serviceName);
+            COMMIT;   
+       
+        END IF;
+	RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+	 
+	CREATE PROCEDURE getValueIfNotNull(
+		IN value 	CHARACTER,
+		IN altValue CHARACTER)
+	RETURNS CHARACTER
+	BEGIN
+		IF value IS NULL OR TRIM(value) = '' THEN
+			RETURN altValue;
+		ELSE
+			RETURN value;
+		END IF;		
+	END;
+	
+END MODULE;

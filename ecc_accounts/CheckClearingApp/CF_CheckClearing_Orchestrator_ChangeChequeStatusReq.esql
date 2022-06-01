@@ -1,0 +1,62 @@
+DECLARE open NAMESPACE 'http://www.openuri.org/';
+DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+
+CREATE COMPUTE MODULE CF_CheckClearing_Orchestrator_ChangeChequeStatusReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();				
+		
+		DECLARE inHdrRef 			REFERENCE TO InputRoot.XMLNSC.ns:eAI_MESSAGE;
+		DECLARE inReqRef 			REFERENCE TO inHdrRef.ns:eAI_BODY.ns:eAI_REQUEST.ns:inwardLocalClearingRequest;
+		DECLARE outRef,outrefIFX	REFERENCE TO OutputRoot;
+		DECLARE envAuditRef 		REFERENCE TO Environment.Variables.XMLNSC.ServiceData.AuditEntries;
+		-- Get Account Type
+		SET OutputLocalEnvironment.Variables.DebitAccountInfo[] = PASSTHRU('exec bb..MW_Inqueries 3,0,?', inReqRef.ns:debitAccount.ns:acctNumber);
+		
+		-- Audit logging
+--		CALL CommonServicesLib.AUDIT_SP(envAuditRef,'exec bb..MW_Inqueries 3,0,?,' || inReqRef.ns:debitAccount.ns:acctNumber,
+--											'COREDB','acct_type',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'),
+--											'','0','',CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'));		
+		
+		CREATE LASTCHILD OF OutputRoot AS outRef DOMAIN 'XMLNSC';
+	  	CREATE LASTCHILD OF outRef 	   AS outRef NAME 'IFX';
+		
+		SET outRef.SignonRq.ClientDt  = inReqRef.ns:requestTime;
+		SET outRef.SignonRq.ClientApp = inHdrRef.ns:eAI_HEADER.ns:clientChannel;
+		SET outRef.SignonRq.RqUID 	  = inReqRef.ns:referenceNum;
+		SET outRef.BankSvcRq.RqUID 	  = inReqRef.ns:referenceNum;
+		
+		MOVE outrefIFX TO outRef.BankSvcRq;
+		SET outrefIFX.ChkIssueStatusModRq.RqUID 			 = inReqRef.ns:referenceNum;
+		SET outrefIFX.ChkIssueStatusModRq.DepAcctId.AcctId 	 = inReqRef.ns:debitAccount.ns:acctNumber;
+		SET outrefIFX.ChkIssueStatusModRq.DepAcctId.AcctType = OutputLocalEnvironment.Variables.DebitAccountInfo[1].acct_type;
+		SET outrefIFX.ChkIssueStatusModRq.ChkNumStart        = inReqRef.ns:checkNum;
+		SET outrefIFX.ChkIssueStatusModRq.ChkNumEnd 	     = inReqRef.ns:checkNum;
+		SET outrefIFX.ChkIssueStatusModRq.Status 	         = 'Matched';
+		SET outrefIFX.ChkIssueStatusModRq.Desc 		         = inReqRef.ns:debitAccount.ns:desc;
+		
+		-- Build IFX Request
+		DECLARE blobMsg BLOB ASBITSTREAM(OutputRoot.*[<1],1208 );
+		DECLARE blobMsgChar CHAR CAST(blobMsg AS CHAR CCSID 1208);
+		DELETE FIELD OutputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot AS outRef DOMAIN 'XMLNSC';
+		CREATE FIELD outRef.soapenv:Envelope.soapenv:Body AS outRef;
+ 		SET outRef.open:adaptorService.(XMLNSC.CDataField)open:ifxMessage	 = blobMsgChar;
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

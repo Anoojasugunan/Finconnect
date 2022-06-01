@@ -1,0 +1,85 @@
+
+
+CREATE COMPUTE MODULE FinancialPostingMsgFlow_InitCallableFlow
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		DECLARE envRef REFERENCE TO Environment.Variables;
+		SET OutputRoot.XMLNSC  = envRef.XMLNSC;
+		
+		SET envRef.RouteNumber = 1;		
+		
+		IF( envRef.RouteNumber = 1 ) THEN
+			SET OutputLocalEnvironment.Destination.CallableFlow.Invoke.targetEndpointName =  envRef.ConfigParams.Route[envRef.RouteNumber].EndpointName;
+			SET OutputLocalEnvironment.Destination.CallableFlow.Invoke.targetApplication  = envRef.ConfigParams.Route[envRef.RouteNumber].ApplicationName;
+			PROPAGATE TO LABEL 'RouteToCallableFlow' DELETE NONE;
+--			RETURN TRUE;
+		END IF;
+		SET OutputRoot.XMLNSC = envRef.XMLNSC.ServiceData.AccountDetailsResTransformer;
+		PROPAGATE TO TERMINAL 'out' DELETE NONE;
+	RETURN FALSE;	
+	END;
+END MODULE;
+
+
+
+CREATE COMPUTE MODULE FinancialPostingMsgFlow_CallableServiceRes
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+			
+		DECLARE envRef,envDataRef,envAuditRef REFERENCE TO Environment.Variables;	 
+		SET OutputRoot.Properties = envRef.Properties;
+		SET OutputRoot.MQMD = envRef.MQMD;
+		
+		SET OutputRoot.MQMD.ReplyToQ    =  Environment.Variables.Reply.ReplyToQ ;
+		SET envRef.RouteName 	= envRef.ConfigParams.Route[envRef.RouteNumber].EndpointName;
+		 
+		SET envRef.RouteNumber	= envRef.RouteNumber+1;	   	
+			  
+		 IF EXISTS (InputRoot.XMLNSC.ExceptionData[]) THEN
+		 	SET OutputRoot  = InputRoot;    
+		 	SET OutputExceptionList 			= InputRoot.XMLNSC.ExceptionData; 
+			PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+			RETURN FALSE;
+		 END IF;
+		 
+		 CREATE LASTCHILD OF envRef.XMLNSC.ServiceData AS envDataRef NAME envRef.RouteName;
+		 SET envDataRef  = InputRoot.XMLNSC;
+			 			 		
+		 IF(envRef.RouteNumber <=CARDINALITY (envRef.ConfigParams.Route[])) THEN	
+		  	
+			 SET OutputRoot.XMLNSC  = envRef.XMLNSC;
+			 --SET envAuditRef = InputRoot;		
+			 SET OutputLocalEnvironment.Destination.CallableFlow.Invoke.targetEndpointName = envRef.ConfigParams.Route[envRef.RouteNumber].EndpointName;
+			 SET OutputLocalEnvironment.Destination.CallableFlow.Invoke.targetApplication  = envRef.ConfigParams.Route[envRef.RouteNumber].ApplicationName;
+			 PROPAGATE TO LABEL 'RouteToCallableFlow' DELETE NONE;		 
+		
+		END IF;
+		
+--		MOVE envAuditRef TO envRef.XMLNSC.AuditEntries;
+--		CREATE LASTCHILD OF envAuditRef AS envAuditRef VALUES envRef.SourceData.XMLNSC.CFRS;
+--		SET envAuditRef.* = envRef.SourceData.XMLNSC.CFRS.*;
+		
+		RETURN FALSE;
+		
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+	
+	
+END MODULE;
+

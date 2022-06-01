@@ -1,0 +1,97 @@
+BROKER SCHEMA CommonServicesLib
+
+DECLARE sendReply EXTERNAL BOOLEAN TRUE; 
+CREATE COMPUTE MODULE Exit_DataExit
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN	
+		DECLARE MsgId,CorrelId BLOB;
+		DECLARE OutPutTerminal CHARACTER ;
+		DECLARE envRef, envSourceDataRef,envLogRef 		 REFERENCE TO Environment.Variables;
+		DECLARE envConfigRef REFERENCE TO envRef.XMLNSC.ServiceData.ServiceConfig.Config[1];
+		DECLARE outRootRef 	 REFERENCE TO OutputRoot;
+		DECLARE InMsgRef REFERENCE TO 	InputRoot.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REPLY.*:*;
+		IF EXISTS(InputRoot.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_FAULT[]) THEN
+			MOVE InMsgRef TO InputRoot.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_FAULT;
+		END IF;
+ 		SET OutputRoot.Properties.CodedCharSetId = 1208;
+ 		SET envConfigRef.SERVICE_PROTOCOL = 'MQToMQ';
+ 		IF envConfigRef.SERVICE_PROTOCOL = 'MQToMQ' THEN
+			SET MsgId 						= envRef.XMLNSC.ServiceData.SourceData.MQMD.MsgId;
+			SET CorrelId 					= envRef.XMLNSC.ServiceData.SourceData.MQMD.CorrelId;
+			SET OutputRoot.MQMD.MsgId 		= MsgId;
+			SET OutputRoot.MQMD.CorrelId 	= CorrelId;
+			SET OutputRoot.MQMD.ReplyToQ 	= 'MOB.ROUTER.REPLY';--envRef.XMLNSC.ServiceData.SourceData.MQMD.ReplyToQ;
+			SET OutputRoot.MQMD.ReplyToQMgr = envRef.XMLNSC.ServiceData.SourceData.MQMD.ReplyToQMgr;
+			SET OutPutTerminal = 'MQ';
+ 		ELSEIF envConfigRef.SERVICE_PROTOCOL IN('MQToHTTP','HTTPToHTTP')  THEN
+ 			SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier 
+ 												= CAST (envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.RequestIdentifier AS BLOB);
+ 			SET OutPutTerminal = 'HTTP';
+ 		ELSEIF envConfigRef.SERVICE_PROTOCOL = 'HTTPToMQ' THEN
+			SET MsgId 						= envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.Msgid;
+			SET CorrelId 					= envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.Correlid;
+			SET OutputRoot.MQMD.MsgId 		= MsgId;
+			SET OutputRoot.MQMD.CorrelId 	= CorrelId;
+			SET OutputRoot.MQMD.ReplyToQ 	= envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.Replytoq;
+			SET OutputRoot.MQMD.ReplyToQMgr = envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.Replytoqmgr;
+ 			SET OutPutTerminal = 'MQ';
+ 		ELSE
+ 			IF EXISTS(envRef.XMLNSC.ServiceData.SourceData.MQMD[]) THEN
+	 			SET MsgId 						= envRef.XMLNSC.ServiceData.SourceData.MQMD.MsgId;
+				SET CorrelId 					= envRef.XMLNSC.ServiceData.SourceData.MQMD.CorrelId;
+				SET OutputRoot.MQMD.MsgId 		= MsgId;
+				SET OutputRoot.MQMD.CorrelId 	= CorrelId;
+				SET OutputRoot.MQMD.ReplyToQ 	= envRef.XMLNSC.ServiceData.SourceData.MQMD.ReplyToQ;
+				SET OutputRoot.MQMD.ReplyToQMgr = envRef.XMLNSC.ServiceData.SourceData.MQMD.ReplyToQMgr;
+ 				SET OutPutTerminal = 'MQ';
+ 			ELSEIF EXISTS(envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader[]) THEN
+ 				SET OutputLocalEnvironment.Destination.HTTP.RequestIdentifier 
+ 												= CAST (envRef.XMLNSC.ServiceData.SourceData.HTTP.HTTPInputHeader.RequestIdentifier AS BLOB);
+ 				SET OutPutTerminal = 'HTTP';
+ 			END IF;
+ 		END IF;
+		CALL CopyEntireMessage();
+		 	
+	 	-- Audit purpose
+	 	DECLARE blobResponse BLOB ASBITSTREAM(OutputRoot.XMLNSC CCSID 1208 );
+        DECLARE blobResponseChar CHAR CAST(blobResponse AS CHAR CCSID 1208);
+	 	MOVE envLogRef TO envRef.XMLNSC.ServiceData.AuditEntries;
+	 	SET	 envLogRef.LOG_POINT		= 'EXIT';
+	 	SET  envLogRef.REPLY_DATA		= blobResponseChar;
+		SET  envLogRef.RETURN_CODE		= InMsgRef.*:returnStatus.*:returnCode;
+		SET  envLogRef.REPLY_TIME		= CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS');
+		
+		-- Send Reply To channel if isRequest is TRUE
+		IF sendReply THEN
+			IF OutPutTerminal = 'MQ' THEN
+				PROPAGATE TO TERMINAL 'out';
+			ELSE
+				PROPAGATE TO TERMINAL 'out1';
+			END IF;
+			DELETE FIELD OutputRoot.XMLNSC;
+		END IF;
+		--
+		SET OutputRoot.Properties.CodedCharSetId = 1208;
+		-- AUDIT LOG
+		IF envRef.XMLNSC.ServiceData.ServiceConfig.Config[1].LOG_REQUIRED = 'Y' THEN
+			CREATE LASTCHILD OF OutputRoot AS outRootRef	DOMAIN 'XMLNSC';
+		  	CREATE LASTCHILD OF outRootRef AS outRootRef NAME 'SERVICE_LOGGER_DATA';
+			SET outRootRef = envRef.XMLNSC.ServiceData.AuditEntries;
+			PROPAGATE TO TERMINAL 'out2' DELETE NONE;
+		END IF;
+		--- CLEAR Environment Variables
+		SET OutputLocalEnvironment.Variables.SourceData = envRef.XMLNSC.ServiceData.SourceData;
+		SET Environment.Variables 				= NULL;
+		IF Environment.Variables.KeepSourceData = 'Y' THEN
+			--- Keep SourceData
+			SET Environment.Variables.XMLNSC.ServiceData.SourceData = OutputLocalEnvironment.Variables.SourceData;
+		END IF;
+		SET OutputLocalEnvironment.Variables =  NULL;
+		--
+		RETURN FALSE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot.XMLNSC = InputRoot.XMLNSC;
+	END;
+END MODULE;

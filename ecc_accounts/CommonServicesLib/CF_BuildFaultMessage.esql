@@ -1,0 +1,103 @@
+BROKER SCHEMA CommonServicesLib
+
+
+
+CREATE COMPUTE MODULE CF_BuildFaultMessage
+	DECLARE ns	NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';	
+
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- Copy required content
+		-- CALL CopyMessageHeaders();				
+	
+		DECLARE envRef,envDataRef,envSourceRef,envLogRef	 REFERENCE TO Environment.Variables;
+		
+		CREATE NEXTSIBLING OF OutputRoot.Properties DOMAIN 'MQMD';
+		SET OutputRoot.MQMD.Version          = MQMD_CURRENT_VERSION;
+		SET OutputRoot.MQMD.ReplyToQ         = envRef.Reply.ReplyToQ;--envRef.SourceData.MQMD.ReplyToQ;
+		SET OutputRoot.MQMD.ReplyToQMgr      = envRef.SourceData.MQMD.ReplyToQMgr; 
+		
+		IF EXISTS(envRef.MQRFH2[])
+			THEN
+			SET OutputRoot.MQMD.Format       = 'MQHRF2  ';
+			SET OutputRoot.MQRFH2            = envRef.SourceData.MQRFH2;		
+		ELSE
+			SET OutputRoot.MQMD.Format       = 'MQSTR   ';
+		END IF;
+		
+		SET OutputRoot.MQMD.CorrelId         = CAST(envRef.SourceData.MQMD.CorrelId AS BLOB);
+		SET OutputRoot.MQMD.MsgId            = CAST(envRef.SourceData.MQMD.MsgId AS BLOB);
+		--SET MQMD END
+		
+		DECLARE refNum,refNumConsumer CHARACTER '';
+		
+		-- XMLDeclaration		
+		CREATE FIRSTCHILD OF OutputRoot.XMLNSC TYPE XMLNSC.XmlDeclaration;
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)Version = '1.0'; 
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)Encoding = 'UTF-8'; 
+		SET OutputRoot.XMLNSC.(XMLNSC.XmlDeclaration)*.(XMLNSC.Attribute)StandAlone = 'yes';		
+		
+		MOVE envRef TO envRef.XMLNSC.ServiceData;					
+		-- eAI_HEADER		--		
+		MOVE envSourceRef TO envRef.SourceData.XMLNSC.ns:eAI_MESSAGE;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER = envSourceRef.ns:eAI_HEADER;
+		SET refNum         = envSourceRef.ns:eAI_BODY.*[1].*[1].ns:referenceNum;
+		SET refNumConsumer = envSourceRef.ns:eAI_BODY.*[1].*[1].ns:referenceNumConsumer;	
+				
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:eaiReference = NULL;
+	
+		-- eAI_FAULT			
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNum			= refNum;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNumConsumer 	= refNumConsumer;
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:referenceNumProvider 	= COALESCE(envSourceRef.ns:eAI_BODY.*[1].*[1].ns:referenceNumProvider,'NA');
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:requestTime 			= COALESCE(envSourceRef.ns:eAI_BODY.*[1].*[1].ns:requestTime, FormatCurrentTime('1') );
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:returnStatus.ns:returnCode 	= COALESCE(envRef.returnCode,1201);
+		SET	OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_FAULT.ns:returnStatus.ns:returnCodeDesc	= COALESCE(envRef.returnCodeDesc,'Generic Exception. Error have been logged');
+		
+		-- For AUDIT Purpose
+		MOVE envDataRef TO  envRef.XMLNSC.AuditEntries;
+--		DECLARE blobMsg BLOB ASBITSTREAM(OutputRoot.*[<1],1208 );
+--		DECLARE blobMsgChar CHAR CAST(blobMsg AS CHAR CCSID 1208);
+--		
+		MOVE envLogRef TO envRef.XMLNSC.AuditEntries;
+		SET  envLogRef.ExceptionMessage.ExceptionData = OutputRoot;
+		
+	RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	
+	/*
+	 * Check if the value provided in the first parameter is null.
+	 * If null, return altValue.
+	 *
+	 * Parameters:	 
+	 * IN:    CHARACTER value - Value to check for null	 
+	 * IN:    CHARACTER altValue - Alternate value to use if first parameter is null
+	 *
+	 * RETURNS: CHARACTER - Returns eith value or altValue based on the check
+	 *
+	 */
+	 
+	CREATE PROCEDURE getValueIfNotNull(
+		IN value 	CHARACTER,
+		IN altValue CHARACTER)
+	RETURNS CHARACTER
+	BEGIN
+		IF value IS NULL OR TRIM(value) = '' THEN
+			RETURN altValue;
+		ELSE
+			RETURN value;
+		END IF;		
+	END;
+	
+END MODULE;

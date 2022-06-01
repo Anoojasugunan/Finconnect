@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:CommonServicesLib_EmailGenerateSubflow.subflow="CommonServicesLib/EmailGenerateSubflow.subflow" xmlns:CommonServicesLib_Exit.subflow="CommonServicesLib/Exit.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow" xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CommonServicesLib/ExceptionHandlingSubflow.subflow" nsPrefix="CommonServicesLib_ExceptionHandlingSubflow.subflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1" useDefaults="true" udpSupport="true">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.isRequest" name="isRequest" lowerBound="1" defaultValueLiteral="true">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.raiseException" name="raiseException" lowerBound="1" defaultValueLiteral="true">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.sendEmail" name="sendEmail" lowerBound="1" defaultValueLiteral="true">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.errorCode" name="errorCode" lowerBound="1" defaultValueLiteral="1201">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.errorDesc" name="errorDesc" lowerBound="1" defaultValueLiteral="Generic Exception. Error have been logged">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.namespace" name="namespace" lowerBound="1" defaultValueLiteral="urn:esbbank.com/gbo/xml/schemas/v1_0/">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.sendReply" name="sendReply" lowerBound="1" defaultValueLiteral="true">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EBoolean"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.msgCode" name="msgCode" defaultValueLiteral="1299">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="ExceptionHandlingSubflow" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj16/ExceptionHandlingSubflow.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CommonServicesLib/icons/full/obj30/ExceptionHandlingSubflow.gif"/>
+    <composition>
+      <nodes xmi:type="eflow:FCMSource" xmi:id="InTerminal.Input" location="96,126">
+        <translation xmi:type="utility:TranslatableString" key="InTerminal.Input" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_2" location="470,90" computeExpression="esql://routine/CommonServicesLib#BuildErrorMessage.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="BuildErrorMessage"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="466,198" computeExpression="esql://routine/CommonServicesLib#BuildFaultMessage.Main">
+        <translation xmi:type="utility:ConstantString" string="BuildFaultMessage"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_EmailGenerateSubflow.subflow:FCMComposite_1" xmi:id="FCMComposite_1_7" location="677,91" msgCode="1299">
+        <translation xmi:type="utility:ConstantString" string="EmailGenerateSubflow"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="217,126" computeExpression="esql://routine/CommonServicesLib#SetRouteforErrorHandler.Main" computeMode="all">
+        <translation xmi:type="utility:ConstantString" string="SetRouteforErrorHandler"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_Exit.subflow:FCMComposite_1" xmi:id="FCMComposite_1_1" location="739,199">
+        <translation xmi:type="utility:ConstantString" string="Exit"/>
+      </nodes>
+      <nodes xmi:type="eflow:FCMSink" xmi:id="OutTerminal.Output" location="746,297">
+        <translation xmi:type="utility:TranslatableString" key="OutTerminal.Handle Fault" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_2" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_9" sourceNode="InTerminal.Input" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_12" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_13" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="OutTerminal.Output" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.in"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.isRequest">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.isRequest" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.raiseException">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.raiseException" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+          <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.sendEmail">
+            <propertyName xmi:type="utility:TranslatableString" key="Property.sendEmail" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+            <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.errorCode">
+              <propertyName xmi:type="utility:TranslatableString" key="Property.errorCode" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+              <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.errorDesc">
+                <propertyName xmi:type="utility:TranslatableString" key="Property.errorDesc" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+                <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.namespace">
+                  <propertyName xmi:type="utility:TranslatableString" key="Property.namespace" bundleName="CommonServicesLib/ExceptionHandlingSubflow" pluginId="CommonServicesLib"/>
+                  <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.sendReply">
+                    <propertyName xmi:type="utility:TranslatableString" key="Property.sendReply" bundleName="CommonServicesLib/Exit" pluginId="CommonServicesLib"/>
+                    <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.msgCode">
+                      <propertyName xmi:type="utility:TranslatableString" key="Property.msgCode" bundleName="CommonServicesLib/EmailGenerateSubflow" pluginId="CommonServicesLib"/>
+                    </propertyDescriptor>
+                  </propertyDescriptor>
+                </propertyDescriptor>
+              </propertyDescriptor>
+            </propertyDescriptor>
+          </propertyDescriptor>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <attributeLinks promotedAttribute="Property.sendReply" overriddenNodes="FCMComposite_1_1">
+      <overriddenAttribute href="CommonServicesLib/Exit.subflow#Property.sendReply"/>
+    </attributeLinks>
+    <attributeLinks promotedAttribute="Property.msgCode" overriddenNodes="FCMComposite_1_7">
+      <overriddenAttribute href="CommonServicesLib/EmailGenerateSubflow.subflow#Property.msgCode"/>
+    </attributeLinks>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

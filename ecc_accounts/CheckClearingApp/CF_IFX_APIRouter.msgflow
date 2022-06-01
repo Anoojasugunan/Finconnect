@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCallableFlowInput.msgnode="ComIbmCallableFlowInput.msgnode" xmlns:ComIbmCallableFlowReply.msgnode="ComIbmCallableFlowReply.msgnode" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmWSRequest.msgnode="ComIbmWSRequest.msgnode" xmlns:CommonServicesLib_ThrowUserException.subflow="CommonServicesLib/ThrowUserException.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CF_IFX_APIRouter.msgflow" nsPrefix="CF_IFX_APIRouter.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.OperationName" name="OperationName">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <eStructuralFeatures xmi:type="ecore:EAttribute" xmi:id="Property.ReplyName" name="ReplyName">
+      <eType xmi:type="ecore:EDataType" href="http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    </eStructuralFeatures>
+    <translation xmi:type="utility:TranslatableString" key="CF_IFX_APIRouter" bundleName="CF_IFX_APIRouter" pluginId="CheckClearingApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CheckClearingApp/icons/full/obj16/CF_IFX_APIRouter.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CheckClearingApp/icons/full/obj30/CF_IFX_APIRouter.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmCallableFlowInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="45,136" callableInputEndpoint="IFX_APIRouter">
+        <translation xmi:type="utility:ConstantString" string="IFX_APIRouter"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCallableFlowReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="793,138">
+        <translation xmi:type="utility:ConstantString" string="CallableReply"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="534,230" computeExpression="esql://routine/#CF_IFX_APIRouter_FailureResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="FaultResponseLog"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="744,231" errorCode="7021" errorDesc="HTTP Error Detected">
+        <translation xmi:type="utility:ConstantString" string="Throw HTTP Error Detected"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="566,137" computeExpression="esql://routine/#CF_IFX_APIRouter_LogProviderResponse.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="LogProviderResponse"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_4" location="234,136" computeExpression="esql://routine/#CF_IFX_APIRouter_LogProviderRequest.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="LogProviderRequest"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_5" location="534,37" computeExpression="esql://routine/#CF_IFX_APIRouter_FailureResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="ErrorResponseLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="410,137" URLSpecifier="http://localhost:7800/ifxapicall" httpVersion="1.1" protocol="TLS" messageDomainProperty="XMLNSC">
+        <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_8" location="361,38" errorCode="9022" errorDesc="IFX URL not specified">
+        <translation xmi:type="utility:ConstantString" string="Throw IFX URL not specified"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_11" location="743,38" errorCode="7020" errorDesc="IFX Request Timeout.">
+        <translation xmi:type="utility:ConstantString" string="Throw IFX Request Timeout"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_4" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_4" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_5" targetNode="FCMComposite_1_11" sourceNode="FCMComposite_1_5" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer>
+      <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.OperationName">
+        <propertyName xmi:type="utility:TranslatableString" key="Property.OperationName" bundleName="CF_IFX_APIRouter" pluginId="CheckClearingApp"/>
+        <propertyDescriptor groupName="Group.Basic" configurable="true" userDefined="true" describedAttribute="Property.ReplyName">
+          <propertyName xmi:type="utility:TranslatableString" key="Property.ReplyName" bundleName="CF_IFX_APIRouter" pluginId="CheckClearingApp"/>
+        </propertyDescriptor>
+      </propertyDescriptor>
+    </propertyOrganizer>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

@@ -1,0 +1,44 @@
+
+
+CREATE COMPUTE MODULE CF_CheckInward_ResTransformer
+	DECLARE ns1 NAMESPACE 'http://tempuri.org/';
+	DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+	DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE inRef,inRefer REFERENCE TO InputRoot.XMLNSC.ServiceData.CheckInwardAPIRouter;
+--		DECLARE envRef,envTransRqRef,
+--		envTransRsRef,envAuthRef,envRootRef, envMsgRef ,envHdrRef 					   REFERENCE TO Environment.Variables;
+		DECLARE outRootRef,outRef,outMsgRef,outHdrRef,outTransRef, outCallType   REFERENCE TO OutputRoot;
+		
+		DECLARE inHdrRef,inMsgRef,inTransRqRef REFERENCE TO InputRoot;
+        MOVE inMsgRef TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE;
+		MOVE inHdrRef TO inMsgRef.ns:eAI_HEADER;
+		MOVE inTransRqRef TO inMsgRef.ns:eAI_BODY.ns:eAI_REQUEST.ns:*;
+		
+		CREATE LASTCHILD OF OutputRoot AS outRootRef DOMAIN 'XMLNSC';
+		CREATE LASTCHILD OF outRootRef AS outMsgRef NAMESPACE ns NAME 'eAI_MESSAGE';
+		
+		CREATE FIELD outMsgRef.ns:eAI_HEADER AS outHdrRef;
+		SET outHdrRef = inHdrRef;
+		
+		CREATE FIELD outMsgRef.ns:eAI_BODY.ns:eAI_REPLY.ns:inwardLocalClearingReply AS outTransRef;
+		
+		SET outTransRef.ns:referenceNum 		= inTransRqRef.ns:referenceNum;
+		SET outTransRef.ns:referenceNumConsumer = inTransRqRef.ns:referenceNumConsumer;
+		
+		SET outTransRef.ns:debitAccount			=	inTransRqRef.ns:debitAccount;
+		SET outTransRef.ns:debitValueDate		=	inTransRqRef.ns:debitValueDate;
+		SET outTransRef.ns:creditAccount		=	inTransRqRef.ns:creditAccount;
+		SET outTransRef.ns:creditValueDate		=	inTransRqRef.ns:creditValueDate;
+		SET outTransRef.ns:checkNum				=	inTransRqRef.ns:checkNum;
+		SET outTransRef.ns:requestTime			=	inTransRqRef.ns:requestTime;
+		
+		SET outTransRef.ns:returnStatus.ns:returnCode		=	inRef.Variables.retCode.ESBERRORCODE;
+		SET outTransRef.ns:returnStatus.ns:returnCodeDesc	=	inRef.Variables.retCode.ESBERRORCODEMSG;
+		SET outTransRef.ns:returnStatusProvider.ns:returnCodeProvider		=	inRef.Variables.retCode.PROVIDERERRORCODE;
+		SET outTransRef.ns:returnStatusProvider.ns:returnCodeDescProvider	=	inRef.Variables.retCode.PROVIDERERRORCODEMSG;
+		RETURN TRUE;
+	END;
+
+END MODULE;

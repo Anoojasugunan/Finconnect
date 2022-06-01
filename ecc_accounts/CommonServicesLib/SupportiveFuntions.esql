@@ -1,0 +1,414 @@
+BROKER SCHEMA CommonServicesLib
+DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+
+DECLARE CacheRow SHARED ROW;
+
+DECLARE ROW_ATMBRANCHLOCATIONS SHARED ROW;
+DECLARE ROW_BACKENDSYSTEM SHARED ROW;
+DECLARE ROW_BIC_LIST SHARED ROW;
+DECLARE ROW_CHANNELSERVICEID SHARED ROW;
+DECLARE ROW_CHARGES SHARED ROW;
+DECLARE ROW_CHARITY SHARED ROW;
+DECLARE ROW_CMSMAP SHARED ROW;
+DECLARE ROW_CODES SHARED ROW;
+DECLARE ROW_CURRENCYCODE SHARED ROW;
+DECLARE ROW_ERRORCODEMAP SHARED ROW;
+DECLARE ROW_ESBLOOKUPS SHARED ROW;
+DECLARE ROW_ESTATEMENTFREQUENCY SHARED ROW;
+DECLARE ROW_HPSCHANNELMAP SHARED ROW;
+DECLARE ROW_IBAN SHARED ROW;
+DECLARE ROW_IBAN_BANK SHARED ROW;
+DECLARE ROW_IFSCCODE SHARED ROW;
+DECLARE ROW_INSTITUTECODE SHARED ROW;
+DECLARE ROW_ISOCURRENCYMAPPING SHARED ROW;
+DECLARE ROW_POWERCARD_SERVICES SHARED ROW;
+DECLARE ROW_PRE_ACORR SHARED ROW;
+DECLARE ROW_QATCHCODEMAP SHARED ROW;
+DECLARE ROW_SMSNOTIID SHARED ROW;
+DECLARE ROW_TRANSACTION_PARAMETERS SHARED ROW;
+DECLARE ROW_TRANSFERCODECONFIG SHARED ROW;
+DECLARE ROW_UTILITY SHARED ROW;
+DECLARE ROW_SERVICECONFIG SHARED ROW;
+
+
+
+CREATE FUNCTION CACHE(IN Map CHAR, IN TableName CHARACTER,IN Query CHARACTER, IN refValues REFERENCE, INOUT OutRef REFERENCE)
+	BEGIN
+		DECLARE refCache REFERENCE TO CacheRow;
+		CASE (TableName)
+			WHEN 'ATMBRANCHLOCATIONS' THEN
+				MOVE refCache  TO ROW_ATMBRANCHLOCATIONS;
+			WHEN 'BACKENDSYSTEM' THEN
+				MOVE refCache  TO ROW_BACKENDSYSTEM;
+			WHEN 'BIC_LIST' THEN
+				MOVE refCache  TO ROW_BIC_LIST;
+			WHEN 'CHANNELSERVICEID' THEN
+				MOVE refCache  TO ROW_CHANNELSERVICEID;
+			WHEN 'CHARGES' THEN
+				MOVE refCache  TO ROW_CHARGES;
+			WHEN 'CHARITY' THEN
+				MOVE refCache  TO ROW_CHARITY;
+			WHEN 'CMSMAP' THEN
+				MOVE refCache  TO ROW_CMSMAP;
+			WHEN 'CODES' THEN
+				MOVE refCache  TO ROW_CODES;
+			WHEN 'CURRENCYCODE' THEN
+				MOVE refCache  TO ROW_CURRENCYCODE;
+			WHEN 'ERRORCODEMAP' THEN
+				MOVE refCache  TO ROW_ERRORCODEMAP;
+			WHEN 'ESBLOOKUPS' THEN
+				MOVE refCache  TO ROW_ESBLOOKUPS;
+			WHEN 'ESTATEMENTFREQUENCY' THEN
+				MOVE refCache  TO ROW_ESTATEMENTFREQUENCY;
+			WHEN 'HPSCHANNELMAP' THEN
+				MOVE refCache  TO ROW_HPSCHANNELMAP;
+			WHEN 'IBAN' THEN
+				MOVE refCache  TO ROW_IBAN;
+			WHEN 'IBAN_BANK' THEN
+				MOVE refCache  TO ROW_IBAN_BANK;
+			WHEN 'IFSCCODE' THEN
+				MOVE refCache  TO ROW_IFSCCODE;
+			WHEN 'INSTITUTECODE' THEN
+				MOVE refCache  TO ROW_INSTITUTECODE;
+			WHEN 'ISOCURRENCYMAPPING' THEN
+				MOVE refCache  TO ROW_ISOCURRENCYMAPPING;
+			WHEN 'POWERCARD_SERVICES' THEN
+				MOVE refCache  TO ROW_POWERCARD_SERVICES;
+			WHEN 'PRE_ACORR' THEN
+				MOVE refCache  TO ROW_PRE_ACORR;
+			WHEN 'QATCHCODEMAP' THEN
+				MOVE refCache  TO ROW_QATCHCODEMAP;
+			WHEN 'SMSNOTIID' THEN
+				MOVE refCache  TO ROW_SMSNOTIID;
+			WHEN 'TRANSACTION_PARAMETERS' THEN
+				MOVE refCache  TO ROW_TRANSACTION_PARAMETERS;
+			WHEN 'TRANSFERCODECONFIG' THEN
+				MOVE refCache  TO ROW_TRANSFERCODECONFIG;
+			WHEN 'UTILITY' THEN
+				MOVE refCache  TO ROW_UTILITY;
+			WHEN 'SERVICECONFIG' THEN
+				MOVE refCache  TO ROW_SERVICECONFIG;
+		END CASE;
+		
+		IF EXISTS(refCache.{Map}[]) THEN
+			SET OutRef.{TableName}.{Map}[] = refCache.{Map}[];
+		ELSE
+			CALL getDBValue(refCache, Map, TableName, Query, refValues);
+			SET OutRef.{TableName}.{Map}[] = refCache.{Map}[];
+		END IF;
+	END;
+	
+	CREATE FUNCTION getDBValue(IN refCache REFERENCE,IN Map CHAR, IN TableName CHARACTER, IN Query CHARACTER, IN refValues REFERENCE)
+	BEGIN
+		SET refCache.{Map}[] = PASSTHRU(Query, refValues.Values[]);
+	END;
+
+CREATE FUNCTION CLEAR_CACHE(IN TableName CHARACTER)
+	BEGIN
+		CASE (TableName)
+			WHEN 'ATMBRANCHLOCATIONS' THEN
+				SET ROW_ATMBRANCHLOCATIONS = NULL;
+			WHEN 'BACKENDSYSTEM' THEN
+				SET ROW_BACKENDSYSTEM = NULL;
+			WHEN 'BIC_LIST' THEN
+				SET ROW_BIC_LIST = NULL;
+			WHEN 'CHANNELSERVICEID' THEN
+				SET ROW_CHANNELSERVICEID = NULL;
+			WHEN 'CHARGES' THEN
+				SET ROW_CHARGES = NULL;
+			WHEN 'CHARITY' THEN
+				SET ROW_CHARITY = NULL;
+			WHEN 'CMSMAP' THEN
+				SET ROW_CMSMAP = NULL;
+			WHEN 'CODES' THEN
+				SET ROW_CODES = NULL;
+			WHEN 'CURRENCYCODE' THEN
+				SET ROW_CURRENCYCODE = NULL;
+			WHEN 'ERRORCODEMAP' THEN
+				SET ROW_ERRORCODEMAP = NULL;
+			WHEN 'ESBLOOKUPS' THEN
+				SET ROW_ESBLOOKUPS = NULL;
+			WHEN 'ESTATEMENTFREQUENCY' THEN
+				SET ROW_ESTATEMENTFREQUENCY = NULL;
+			WHEN 'HPSCHANNELMAP' THEN
+				SET ROW_HPSCHANNELMAP = NULL;
+			WHEN 'IBAN' THEN
+				SET ROW_IBAN = NULL;
+			WHEN 'IBAN_BANK' THEN
+				SET ROW_IBAN_BANK = NULL;
+			WHEN 'IFSCCODE' THEN
+				SET ROW_IFSCCODE = NULL;
+			WHEN 'INSTITUTECODE' THEN
+				SET ROW_INSTITUTECODE = NULL;
+			WHEN 'ISOCURRENCYMAPPING' THEN
+				SET ROW_ISOCURRENCYMAPPING = NULL;
+			WHEN 'POWERCARD_SERVICES' THEN
+				SET ROW_POWERCARD_SERVICES = NULL;
+			WHEN 'PRE_ACORR' THEN
+				SET ROW_PRE_ACORR = NULL;
+			WHEN 'QATCHCODEMAP' THEN
+				SET ROW_QATCHCODEMAP = NULL;
+			WHEN 'SMSNOTIID' THEN
+				SET ROW_SMSNOTIID = NULL;
+			WHEN 'TRANSACTION_PARAMETERS' THEN
+				SET ROW_TRANSACTION_PARAMETERS = NULL;
+			WHEN 'TRANSFERCODECONFIG' THEN
+				SET ROW_TRANSFERCODECONFIG = NULL;
+			WHEN 'UTILITY' THEN
+				SET ROW_UTILITY = NULL;
+			WHEN 'SERVICECONFIG' THEN
+				SET ROW_SERVICECONFIG = NULL;
+		END CASE;
+	END;
+
+CREATE FUNCTION SET_CACHE()
+	BEGIN
+		SET CacheRow.Value = 'SampleCacheRow1';
+	END;
+	
+CREATE FUNCTION GET_CACHE(INOUT  OutRef REFERENCE) 
+	BEGIN
+		SET OutRef = CacheRow.Value;
+	END;
+
+
+CREATE PROCEDURE AddProviderReqToAudit(IN AuditLogRef REFERENCE, IN ReqRef REFERENCE,
+IN Provider CHARACTER,IN Operation CHARACTER,IN EventTime CHARACTER) BEGIN
+	DECLARE ReqChar  CHARACTER '';
+	DECLARE DataBlob BLOB ASBITSTREAM(ReqRef CCSID 1208);
+	SET ReqChar = CAST(DataBlob AS CHARACTER CCSID 1208);
+	IF NOT EXISTS(AuditLogRef.PROVIDER_DATA[]) THEN
+		CREATE LASTCHILD OF AuditLogRef AS AuditLogRef NAME 'PROVIDER_DATA';
+	ELSE
+		MOVE AuditLogRef TO AuditLogRef.PROVIDER_DATA;
+	END IF;
+	CREATE LASTCHILD OF AuditLogRef AS AuditLogRef NAME 'PROVIDERLOGLIST';
+	SET AuditLogRef.REQUESTDATA	= ReqChar;
+	SET AuditLogRef.PROVIDER 	= Provider;
+	SET AuditLogRef.OPERATION 	= Operation;
+	SET AuditLogRef.REQUESTTIME = EventTime;
+END;
+
+
+
+CREATE PROCEDURE AddProviderResToAudit(IN AuditLogRef REFERENCE, IN ReqRef REFERENCE,IN ReturnCode CHARACTER,
+IN ExceptionData CHARACTER,IN EventTime CHARACTER) BEGIN
+	DECLARE ResChar  CHARACTER '';
+	DECLARE DataBlob BLOB ASBITSTREAM(ReqRef CCSID 1208);
+	SET ResChar = CAST(DataBlob AS CHARACTER CCSID 1208);
+	MOVE AuditLogRef TO AuditLogRef.PROVIDER_DATA;
+	MOVE AuditLogRef LASTCHILD NAME 'PROVIDERLOGLIST';
+	SET AuditLogRef.REPLYDATA	= ResChar;
+	SET AuditLogRef.RETURNCODE	= ReturnCode;
+	IF ExceptionData <> '' THEN
+		SET AuditLogRef.EXCEPTION	= ExceptionData;
+	END IF;
+	SET AuditLogRef.REPLYTIME	= EventTime;
+END;
+
+CREATE PROCEDURE AUDIT_SP(IN AuditLogRef REFERENCE, IN ReqChar CHARACTER,
+IN Provider CHARACTER,IN Operation CHARACTER,IN RequestTime CHARACTER,
+IN ResChar CHARACTER, IN ReturnCode CHARACTER , IN ExceptionData CHARACTER,
+IN ReplyTime CHARACTER  ) BEGIN
+	IF NOT EXISTS(AuditLogRef.SP_DATA[]) THEN
+		CREATE LASTCHILD OF AuditLogRef AS AuditLogRef NAME 'SP_DATA';
+	ELSE
+		MOVE AuditLogRef TO AuditLogRef.SP_DATA;
+	END IF;
+	CREATE LASTCHILD OF AuditLogRef AS AuditLogRef NAME 'SPLOGLIST';
+	SET AuditLogRef.REQUESTDATA	= ReqChar;
+	SET AuditLogRef.PROVIDER 	= Provider;
+	SET AuditLogRef.OPERATION 	= Operation;
+	SET AuditLogRef.REQUESTTIME = RequestTime;
+	SET AuditLogRef.REPLYDATA	= ResChar;
+	SET AuditLogRef.RETURNCODE	= ReturnCode;
+	IF ExceptionData <> '' THEN
+		SET AuditLogRef.EXCEPTION	= ExceptionData;
+	END IF;
+	SET AuditLogRef.REPLYTIME	= ReplyTime;
+END;
+
+
+CREATE FUNCTION FormatBulkLogCurrentTime(IN  FormatType CHARACTER) RETURNS CHARACTER
+BEGIN
+	RETURN CAST (CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSSSS');
+END;
+
+CREATE FUNCTION FormatCurrentTimeForlogRefID(IN  FormatType CHARACTER) RETURNS CHARACTER
+BEGIN
+	DECLARE uuid1 CHARACTER UUIDASCHAR;
+	DECLARE ID CHARACTER CAST (CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSSSSS') ;
+	IF  uuid1 is not null THEN
+		SET ID = ID || uuid1;
+	END IF;	
+	RETURN SUBSTRING (ID FROM 1 FOR 26);
+END;
+
+CREATE FUNCTION  getCurrentDateTimeStampJava() RETURNS CHARACTER
+ BEGIN
+  RETURN FormatCurrentTimeForMap();
+ END;
+ 
+CREATE FUNCTION FormatCurrentTimeForMap() RETURNS CHARACTER
+BEGIN
+	RETURN CAST (CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSSS');
+END;
+
+CREATE FUNCTION FormatCurrentTime(IN  FormatType CHARACTER) RETURNS CHARACTER
+BEGIN
+	RETURN CAST (CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSSS');
+END;
+
+CREATE FUNCTION getisVIP(IN classCode CHARACTER) RETURNS CHARACTER 
+	BEGIN
+		DECLARE isVIP CHARACTER '';
+		CASE classCode
+			WHEN  '41' THEN
+	            SET isVIP = 'true';
+	        WHEN '42' THEN
+	            SET isVIP = 'true';
+	        WHEN  '43' THEN
+	            SET isVIP = 'true';
+	        WHEN '44' THEN
+	            SET isVIP = 'true';
+	        WHEN '45' THEN
+	            SET isVIP = 'true';
+	        WHEN '46' THEN
+	            SET isVIP = 'true';
+	        WHEN '47' THEN
+	            SET isVIP = 'true';
+	        WHEN '48' THEN
+	            SET isVIP = 'true';
+	        WHEN '61' THEN
+	            SET isVIP = 'true';
+	        WHEN '62' THEN
+	            SET isVIP = 'true';
+	        WHEN '63' THEN
+	            SET isVIP = 'true';
+	        WHEN '64' THEN
+	            SET isVIP = 'true';
+	        WHEN '65' THEN
+	            SET isVIP = 'true';
+	        WHEN '66' THEN
+	            SET isVIP = 'true';                            
+			ELSE
+				 SET isVIP = 'false';                 
+        END CASE;
+        RETURN isVIP;
+	END;
+	
+	CREATE FUNCTION getCMSMAP(IN cardStatus CHARACTER) RETURNS CHARACTER 
+	BEGIN
+		DECLARE CMSStatusMAP CHARACTER '';
+		CASE cardStatus
+            WHEN 'STOP LIST' THEN
+                   SET CMSStatusMAP = 'Lost Card';
+            WHEN 'NORMAL' THEN
+                   SET CMSStatusMAP = 'Active Card';
+            WHEN 'CANCELLED' THEN
+                   SET CMSStatusMAP = 'Submited Card for Deletion 123';
+            WHEN 'SUSPENDED' THEN
+                   SET CMSStatusMAP = 'Submited Card for Deletion 123';
+            WHEN 'MONITORED' THEN
+                   SET CMSStatusMAP = 'Active Card';
+            WHEN 'EMERGENCY' THEN
+                   SET CMSStatusMAP = 'Active Card';
+            WHEN 'OC' THEN
+                   SET CMSStatusMAP = 'OC';
+            ELSE
+                   SET CMSStatusMAP = 'No Status in DB';
+        END CASE;
+        RETURN CMSStatusMAP;
+	END;
+	
+	
+	CREATE FUNCTION GetNextVal(IN SeqId CHARACTER) RETURNS CHARACTER
+	BEGIN
+		DECLARE SeqNum ROW;
+		DECLARE C CHARACTER;
+	
+		EVAL('SET SeqNum = PASSTHRU(' || '''' || 'SELECT ' || SeqId || '.nextval from dual' || '''' || ');');
+		RETURN CAST ( CAST(SeqNum.NEXTVAL AS INTEGER) AS CHARACTER);
+
+	END;
+	
+CREATE FUNCTION ChangeNamespaceInOutputRoot(In rootNode REFERENCE, In oldNamespace CHARACTER, In newNamespace CHARACTER)
+	BEGIN	
+	-- Remove schemalocation and namespace declarations
+	
+	IF newNamespace = '' THEN
+		SET rootNode.(XMLNSC.Element)*[1].*:schemaLocation = NULL;
+		DECLARE I1 INTEGER CARDINALITY(rootNode.(XMLNSC.Element)*[1].(XMLNSC.NamespaceDecl)*[]);
+		DECLARE I2 INTEGER 1;
+		WHILE I2 <= I1 DO
+			SET rootNode.(XMLNSC.Element)*[1].(XMLNSC.NamespaceDecl)*[1] = NULL;
+			SET I2 = I2 + 1;
+		END WHILE;	 
+	ELSE
+	/*	Modify the schema locations and the namespace declarations	
+		The target schemalocations can be identified within the source message's 
+		MQRFH2 header, <usr> folder, tag <TargetSchemaLocation> */
+
+		IF rootNode.(XMLNSC.Element)*[1].*:schemaLocation IS NOT NULL THEN
+			SET rootNode.(XMLNSC.Element)*[1].*:schemaLocation = newNamespace;
+		END IF;	
+	END IF;	
+		
+	/*	CHECKSIBLING is a flag which, when set to TRUE, ensures that the WHILE loop does an
+		unconditional MOVE ... NEXTSIBLING (rather than MOVE ... FIRSTCHILD)
+		We need this when we go up a level in the tree.. otherwise we go back where we have just come from */
+	
+	DECLARE CHECKSIBLING BOOLEAN FALSE;
+	
+	/*	DEPTH determines when to finish.  
+		Every time we MOVE FIRSTCHILD we add 1 to DEPTH
+		Every time we MOVE PARENT we subtract 1 from DEPTH
+		MOVE NEXTSIBLING does not change DEPTH
+		Initial value is 1, so we are finished when DEPTH = 0 */
+	
+	DECLARE DEPTH INTEGER 1;
+	
+	-- Traverse the tree from top to bottom, left to right	
+	WHILE DEPTH <> 0 DO 
+		IF CHECKSIBLING = FALSE THEN 
+			MOVE rootNode FirstChild;
+		 	IF LASTMOVE(rootNode) = TRUE THEN
+				SET DEPTH = DEPTH + 1;
+				CALL ChangeNamespace(rootNode, oldNamespace, newNamespace);
+		 	ELSE
+		 		MOVE rootNode NEXTSIBLING;
+			 	IF LASTMOVE(rootNode) = TRUE THEN
+					CALL ChangeNamespace(rootNode, oldNamespace, newNamespace);
+					SET CHECKSIBLING = FALSE;
+			 	ELSE
+					SET DEPTH = DEPTH - 1;
+					Move rootNode PARENT;		 		
+					SET CHECKSIBLING = TRUE;
+				END IF;
+		 	END IF;	
+		ELSE
+			MOVE rootNode NEXTSIBLING;
+		 	IF LASTMOVE(rootNode) = TRUE THEN
+				CALL ChangeNamespace(rootNode, oldNamespace, newNamespace);
+				SET CHECKSIBLING = FALSE;
+		 	ELSE
+				SET DEPTH = DEPTH - 1;
+				Move rootNode PARENT;		 		
+				SET CHECKSIBLING = TRUE;
+			END IF;
+		END IF;
+	END WHILE;
+END;
+
+CREATE FUNCTION ChangeNamespace(IN rootNode REFERENCE, In oldNamespace CHARACTER, In newNamespace CHARACTER)
+BEGIN	
+	-- Check for elements/attributes with the source namespace		
+    IF (FIELDTYPE(rootNode) = Name) OR (FIELDTYPE(rootNode) = NameValue) THEN
+	
+		IF FIELDNAMESPACE(rootNode) IN (oldNamespace) THEN 						
+			SET rootNode NAMESPACE = newNamespace;  -- Set the new target namespace
+			
+			SET rootNode.(XMLNSC.NamespaceDecl)* = NULL;  -- Get rid of any inline namespace definitions
+		END IF;
+    END IF;
+END;

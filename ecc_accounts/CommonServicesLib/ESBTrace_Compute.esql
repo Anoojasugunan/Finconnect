@@ -1,0 +1,26 @@
+BROKER SCHEMA CommonServicesLib
+
+CREATE COMPUTE MODULE ESBTrace_Compute
+	DECLARE fileName EXTERNAL CHARACTER 'trace.log';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		SET OutputRoot.Properties	 		= InputProperties;
+		SET OutputRoot.MQMD.MsgType 		= MQMT_DATAGRAM ;
+		SET OutputRoot.MQMD.Persistence 	= MQPER_PERSISTENT;
+		SET OutputRoot.MQMD.CodedCharSetId 	= 1208; 
+		SET OutputRoot.MQMD.ReplyToQ 		= fileName||'#'||ExecutionGroupLabel;
+		IF  InputRoot.MQMD.SourceQueue is not null THEN
+			SET OutputRoot.MQMD.ReplyToQ =  SUBSTRING(OutputRoot.MQMD.ReplyToQ ||'#'|| InputRoot.MQMD.SourceQueue FROM 1 FOR 48) ; 
+		END IF;
+		SET OutputRoot.MQMD.ReplyToQMgr =  cast (CURRENT_TIMESTAMP as CHARACTER FORMAT 'dd-MMM-yyyy,HH.mm.ss.SS');
+		IF  InputRoot.MQMD.PutDate is not null and InputRoot.MQMD.PutTime is not null THEN
+			DECLARE putDate DATE InputRoot.MQMD.PutDate;	
+			DECLARE putTime TIME InputRoot.MQMD.PutTime ;
+			DECLARE dt TIMESTAMP cast (putDate,putTime AS TIMESTAMP);
+			SET OutputRoot.MQMD.ReplyToQMgr = SUBSTRING(OutputRoot.MQMD.ReplyToQMgr||'#'|| cast (dt as CHARACTER FORMAT 'dd-MMM-yyyy,HH.mm.ss.SS') FROM 1 FOR 48) ; 
+		END IF;
+		SET OutputRoot.*[3] = InputRoot.*[<1];
+		RETURN TRUE;
+	END;
+
+END MODULE;

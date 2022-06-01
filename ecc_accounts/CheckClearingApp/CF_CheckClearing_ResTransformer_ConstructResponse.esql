@@ -1,0 +1,54 @@
+
+
+CREATE COMPUTE MODULE CF_CheckClearing_ConstructResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+	 	
+	 	SET OutputRoot.Properties 	= 	InputRoot.Properties ;
+		SET OutputLocalEnvironment	=	InputLocalEnvironment;
+		
+		DECLARE outRespRef REFERENCE TO OutputRoot;		
+		
+		DECLARE envRef,envDataRef,envPropRef,envMsgRef 		REFERENCE TO Environment.Variables;
+		
+		MOVE envPropRef TO Environment.Variables.XMLNSC.ServiceData.SourceData;
+		MOVE envRef 	TO envPropRef.XMLNSC.ns:eAI_MESSAGE;		
+		MOVE envMsgRef 	TO envRef.ns:eAI_BODY.ns:eAI_REQUEST.ns:inwardLocalClearingRequest;		
+		
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER	=	envRef.ns:eAI_HEADER;
+	
+		CREATE FIELD OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REPLY.ns:inwardLocalClearingReply AS outRespRef;	
+	
+		SET outRespRef.ns:referenceNum			=	envMsgRef.ns:referenceNum;		
+		SET outRespRef.ns:referenceNumConsumer	=	envMsgRef.ns:referenceNumConsumer;
+		SET outRespRef.ns:debitAccount			=	envMsgRef.ns:debitAccount;
+		SET outRespRef.ns:debitValueDate		=	envMsgRef.ns:debitValueDate;
+		SET outRespRef.ns:creditAccount			=	envMsgRef.ns:creditAccount;
+		SET outRespRef.ns:creditValueDate		=	envMsgRef.ns:creditValueDate;
+		SET outRespRef.ns:checkNum				=	envMsgRef.ns:checkNum;
+		SET outRespRef.ns:requestTime			=	envMsgRef.ns:requestTime;
+		
+		SET outRespRef.ns:returnStatus.ns:returnCode		=	InputLocalEnvironment.Variables.retCode.ESBERRORCODE;
+		SET outRespRef.ns:returnStatus.ns:returnCodeDesc	=	InputLocalEnvironment.Variables.retCode.ESBERRORCODEMSG;
+		
+		SET outRespRef.ns:returnStatusProvider.ns:returnCodeProvider		=	InputLocalEnvironment.Variables.retCode.PROVIDERERRORCODE;
+		SET outRespRef.ns:returnStatusProvider.ns:returnCodeDescProvider	=	InputLocalEnvironment.Variables.retCode.PROVIDERERRORCODEMSG;
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

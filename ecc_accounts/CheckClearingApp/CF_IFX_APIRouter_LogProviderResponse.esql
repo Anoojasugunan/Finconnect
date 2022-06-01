@@ -1,0 +1,90 @@
+DECLARE ReplyName EXTERNAL CHARACTER '';
+
+CREATE COMPUTE MODULE CF_IFX_APIRouter_LogProviderResponse
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		--CALL CopyEntireMessage();
+		
+		-- AUDIT Purpose 
+		DECLARE replyTime CHARACTER CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS');
+		--
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.soapenv:Envelope.soapenv:Body;
+		DECLARE envRef,envLogRef   REFERENCE TO Environment.Variables;
+		MOVE envLogRef TO envRef.XMLNSC.ServiceData.AuditEntries;
+		DECLARE providerCode, providerCodeDesc  CHARACTER;
+		CALL CopyMessageHeaders();
+		-- Extract IFX Response
+		DECLARE response     CHARACTER inRef.open:adaptorServiceResponse.open:adaptorServiceResult;
+		CREATE LASTCHILD OF OutputRoot DOMAIN('XMLNSC') PARSE(REPLACE(response, '&lt;', '<') CCSID 1208);
+		--
+		SET providerCode      = OutputRoot.XMLNSC.IFX.BankSvcRs.*[<].Status.ServerStatusCode;
+		SET providerCodeDesc  = OutputRoot.XMLNSC.IFX.BankSvcRs.*[<].Status.StatusDesc;
+
+		IF providerCode IS NULL
+		THEN
+			SET providerCode = OutputRoot.XMLNSC.IFX.BankSvcRs.*[<].Status.StatusCode;
+		END IF;
+
+		IF providerCode IS NULL
+		THEN
+			SET providerCode = OutputRoot.XMLNSC.IFX.Status.StatusCode;
+		END IF;
+
+		IF providerCodeDesc IS NULL
+		THEN
+			SET providerCodeDesc = OutputRoot.XMLNSC.IFX.Status.StatusDesc;
+		END IF;
+
+		SET providerCodeDesc = SUBSTRING(providerCodeDesc FROM 1 FOR 128);
+
+		IF providerCode = '0' THEN
+			SET OutputLocalEnvironment.Variables.retCode.ESBERRORCODE    = '0000';
+			SET OutputLocalEnvironment.Variables.retCode.ESBERRORCODEMSG = 'Success';
+		ELSE
+			--
+			SET  OutputLocalEnvironment.Variables.Cache = NULL;
+			SET OutputLocalEnvironment.Variables.Cache.Values[1] = 'IFX';
+			SET OutputLocalEnvironment.Variables.Cache.Values[2] = providerCode;
+			DECLARE refValues REFERENCE TO OutputLocalEnvironment.Variables.Cache;
+			--CALL CommonServicesLib.CACHE(providerCode,'ERRORCODEMAP','SELECT ESBERRORCODE,PROVIDERERRORCODEMSG FROM ERRORCODEMAP WHERE PROVIDERID=? AND PROVIDERERRORCODE = ?',refValues,envLogRef.ENABLE_CACHE,envRef);
+	 		--	  
+			IF envRef.ERRORCODEMAP.{providerCode}.ESBERRORCODE IS NULL THEN
+				SET OutputLocalEnvironment.Variables.retCode.ESBERRORCODE = '6666';
+			ELSE
+				SET OutputLocalEnvironment.Variables.retCode.ESBERRORCODE = envRef.ERRORCODEMAP.{providerCode}.ESBERRORCODE;
+			END IF;
+			
+			SET OutputLocalEnvironment.Variables.retCode.ESBERRORCODEMSG = providerCodeDesc;				
+		END IF;		
+		
+		SET OutputLocalEnvironment.Variables.retCode.PROVIDERERRORCODE    = providerCode;
+		SET OutputLocalEnvironment.Variables.retCode.PROVIDERERRORCODEMSG = providerCodeDesc;		
+		
+		IF ReplyName IS NOT NULL AND ReplyName <>'' THEN
+			SET OutputRoot.XMLNSC.{ReplyName} 	= OutputRoot.XMLNSC.IFX;
+			SET OutputRoot.XMLNSC.IFX			= NULL;
+		END IF;	
+		
+		-- AUDIT IFX Response
+--		CREATE LASTCHILD OF OutputLocalEnvironment.Variables AS inRef DOMAIN('XMLNSC') ;		
+--		SET inRef.soapenv:Envelope.soapenv:Body.open:adaptorServiceResponse.open:adaptorServiceResult =  OutputRoot.XMLNSC;	
+--		CALL CommonServicesLib.AddProviderResToAudit(envLogRef,inRef,providerCode,'',replyTime); 
+		-- 	
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

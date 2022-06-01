@@ -1,0 +1,58 @@
+
+
+
+DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+CREATE COMPUTE MODULE CF_PostCharge_Initiator_COREDBOrchestrator
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		SET Environment.Variables.XMLNSC = InputRoot.XMLNSC;
+		DECLARE inRef REFERENCE TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:*;
+		DECLARE inHdrRef REFERENCE TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER;
+		
+		DECLARE envRef,envAuditRef REFERENCE TO Environment.Variables;
+		DECLARE acctID CHARACTER inRef.ns:debitAccount.ns:acctId;
+		
+		MOVE envAuditRef TO  envRef.XMLNSC.ServiceData.AuditEntries;
+		
+--		SET envAuditRef.COREDB_DATA.CustomerInfo	= 'REQUEST_TIME : '||
+--											  CAST(CURRENT_TIMESTAMP AS CHARACTER)|| 
+--											  ', QUERY : PASSTHRU(exec dbo.MW_Inqueries ?,?,?,4, 0, '')'; 
+											  							
+		--SET envRef.Temp.CustomerInfo[]   = PASSTHRU('select a.class_code, b.acct_no, b.acct_type, b.appl_type from PHOENIX..rm_acct a, PHOENIX..dp_acct b where a.rim_no = b.rim_no and b.acct_no = ?', acctID);
+		SET envRef.Temp.CustomerInfo[]   = PASSTHRU('select a.class_code, b.acct_no, b.acct_type, b.appl_type from rm_acct a, sdp_acct b where a.rim_no = b.rim_no and b.acct_no = ?', acctID);
+		-- logging
+--		CREATE LASTCHILD OF OutputLocalEnvironment.Variables.CustomerInfo DOMAIN('XMLNSC');
+--		SET OutputLocalEnvironment.Variables.CustomerInfo.XMLNSC.CustomerInfo 	= envRef.Temp.CustomerInfo;
+--		
+--		DECLARE blobCustomerInfo BLOB ASBITSTREAM(OutputLocalEnvironment.Variables.CustomerInfo.XMLNSC,1208 );
+--		DECLARE blobCustomerInfoChar CHAR CAST(blobCustomerInfo AS CHAR CCSID 1208);
+--		
+--		SET envAuditRef.COREDB_DATA.CustomerInfo	= envAuditRef.COREDB_DATA.CustomerInfo
+--		||', RESPONSE_TIME : '
+--		||CAST(CURRENT_TIMESTAMP AS CHARACTER)
+--		|| ', VALUES: '|| blobCustomerInfoChar;
+		
+		SET OutputLocalEnvironment.Variables.CustomerInfo[] = envRef.Temp.CustomerInfo[];
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE COREDB(IN P1 INTEGER ,IN P2 INTEGER,IN CHR CHARACTER )
+	LANGUAGE DATABASE
+	DYNAMIC RESULT SETS 1
+	EXTERNAL NAME "dbo.MW_Inqueries";
+	
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

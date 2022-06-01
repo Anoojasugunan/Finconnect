@@ -1,0 +1,58 @@
+BROKER SCHEMA CommonServicesLib
+
+CREATE COMPUTE MODULE ConstructEmailMessage
+	DECLARE msgCode EXTERNAL CHARACTER '1299';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';				
+		CALL CopyMessageHeaders();
+		SET OutputLocalEnvironment = InputLocalEnvironment;
+		SET OutputRoot.Properties.CodedCharSetId = 1208;
+		-- Construct EAI header
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:serviceName 		= 'EMAIL.NOTIFICATION';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:serviceType 		= 'ASYNC';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:serviceVersion 	= '1.0'; 
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:client				= 'BRK';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:clientChannel		= 'BRK';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:msgChannel			= 'BRK';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:requestorLanguage	= 'E';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER.ns:returnCode			= '0000';
+				
+		DECLARE  refNumber CHARACTER Environment.Variables.referenceNum;
+		
+		IF refNumber is null then
+			SET refNumber	= CAST (CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyyMMddHHmmssSSS');
+		ELSE
+			SET refNumber 	= refNumber ||':Email';
+		END IF;	
+		-- Set required variables
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:notificationType 	= 'email';
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:referenceNum 		= refNumber;
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:msgCode 				= COALESCE(Environment.Variables.Email.msgCode,msgCode);
+		
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:Variables.brokername = BrokerName;
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:Variables.exegname 	= ExecutionGroupLabel;
+		SET OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:Variables.flowname 	= MessageFlowLabel;
+
+		-- Add variables folder
+		FOR source AS InputLocalEnvironment.Variables.Email.Variables.*[] DO
+			CREATE LASTCHILD OF OutputRoot.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:notificationRequest.ns:Variables 
+									NAME FIELDNAME(source) VALUE source;
+		END FOR;
+		
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+END MODULE;
+
+

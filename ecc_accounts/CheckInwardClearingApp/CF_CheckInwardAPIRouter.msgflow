@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:ComIbmCallableFlowInput.msgnode="ComIbmCallableFlowInput.msgnode" xmlns:ComIbmCallableFlowReply.msgnode="ComIbmCallableFlowReply.msgnode" xmlns:ComIbmCompute.msgnode="ComIbmCompute.msgnode" xmlns:ComIbmWSRequest.msgnode="ComIbmWSRequest.msgnode" xmlns:CommonServicesLib_ThrowUserException.subflow="CommonServicesLib/ThrowUserException.subflow" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:eflow="http://www.ibm.com/wbi/2005/eflow"
+    xmlns:utility="http://www.ibm.com/wbi/2005/eflow_utility" nsURI="CF_CheckInwardAPIRouter.msgflow" nsPrefix="CF_CheckInwardAPIRouter.msgflow">
+  <eClassifiers xmi:type="eflow:FCMComposite" name="FCMComposite_1">
+    <eSuperTypes href="http://www.ibm.com/wbi/2005/eflow#//FCMBlock"/>
+    <translation xmi:type="utility:TranslatableString" key="CF_CheckInwardAPIRouter" bundleName="CF_CheckInwardAPIRouter" pluginId="CheckInwardClearingApp"/>
+    <colorGraphic16 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CheckInwardClearingApp/icons/full/obj16/CF_CheckInwardAPIRouter.gif"/>
+    <colorGraphic32 xmi:type="utility:GIFFileGraphic" resourceName="platform:/plugin/CheckInwardClearingApp/icons/full/obj30/CF_CheckInwardAPIRouter.gif"/>
+    <composition>
+      <nodes xmi:type="ComIbmWSRequest.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_1" location="354,178" URLSpecifier="http://localhost:7801/ifx" httpVersion="1.1" protocol="TLS" messageDomainProperty="XMLNSC">
+        <translation xmi:type="utility:ConstantString" string="HTTP Request"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_2" location="752,285" errorCode="7411" errorDesc="Invalid CRM Request">
+        <translation xmi:type="utility:ConstantString" string="Throw HTTP Error Detected"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_3" location="189,177" computeExpression="esql://routine/#CF_CheckInwardAPIRouter_LogProviderRequest.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="LogProviderRequest"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_5" location="743,38" errorCode="7410" errorDesc="CRM Request Timeout">
+        <translation xmi:type="utility:ConstantString" string="Throw CRM Request Timeout"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_6" location="521,178" computeExpression="esql://routine/#CF_CheckInwardAPIRouter_LogProviderResponse.Main" computeMode="destinationAndMessage">
+        <translation xmi:type="utility:ConstantString" string="LogProviderResponse"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_7" location="534,37" computeExpression="esql://routine/#CF_CheckInwardAPIRouter_FailureResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="ErrorResponseLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCompute.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_8" location="526,284" computeExpression="esql://routine/#CF_CheckInwardAPIRouter_FailureResponseLog.Main">
+        <translation xmi:type="utility:ConstantString" string="FaultResponseLog"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCallableFlowInput.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_9" location="23,177" callableInputEndpoint="CheckInwardAPIRouter">
+        <translation xmi:type="utility:ConstantString" string="CheckInwardAPIRouter"/>
+      </nodes>
+      <nodes xmi:type="ComIbmCallableFlowReply.msgnode:FCMComposite_1" xmi:id="FCMComposite_1_10" location="754,179">
+        <translation xmi:type="utility:ConstantString" string="CallableReply"/>
+      </nodes>
+      <nodes xmi:type="CommonServicesLib_ThrowUserException.subflow:FCMComposite_1" xmi:id="FCMComposite_1_4" location="303,91" errorCode="9022" errorDesc="IFX URL not specified">
+        <translation xmi:type="utility:ConstantString" string="Throw IFX URL not specified"/>
+      </nodes>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_2" targetNode="FCMComposite_1_2" sourceNode="FCMComposite_1_8" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_3" targetNode="FCMComposite_1_5" sourceNode="FCMComposite_1_7" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.Input"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_6" targetNode="FCMComposite_1_1" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_7" targetNode="FCMComposite_1_6" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_8" targetNode="FCMComposite_1_8" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.error" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_9" targetNode="FCMComposite_1_7" sourceNode="FCMComposite_1_1" sourceTerminalName="OutTerminal.failure" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_10" targetNode="FCMComposite_1_3" sourceNode="FCMComposite_1_9" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_11" targetNode="FCMComposite_1_10" sourceNode="FCMComposite_1_6" sourceTerminalName="OutTerminal.out" targetTerminalName="InTerminal.in"/>
+      <connections xmi:type="eflow:FCMConnection" xmi:id="FCMConnection_1" targetNode="FCMComposite_1_4" sourceNode="FCMComposite_1_3" sourceTerminalName="OutTerminal.out1" targetTerminalName="InTerminal.Input"/>
+    </composition>
+    <propertyOrganizer/>
+    <stickyBoard/>
+  </eClassifiers>
+</ecore:EPackage>

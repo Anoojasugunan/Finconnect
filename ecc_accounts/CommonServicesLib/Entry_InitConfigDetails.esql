@@ -1,0 +1,40 @@
+BROKER SCHEMA CommonServicesLib
+
+
+DECLARE ConfigParams EXTERNAL CHARACTER '{"ConfigParams":[{"Sequence":1,"ApplicationName":"FundTransferInitiator"},{"Sequence":2,"ApplicationName":"IfxApiRouter"},{"Sequence":3,"ApplicationName":"SMS_Exit"}]}';
+CREATE COMPUTE MODULE Entry_InitConfigDetails
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		SET OutputRoot = InputRoot;
+		DECLARE envRef,envConfigRef 		 REFERENCE TO Environment.Variables;		
+			
+		DECLARE dataAsBit BIT  CAST(ConfigParams AS BIT CCSID 1208);
+		CREATE LASTCHILD OF envRef.Config DOMAIN 'JSON' PARSE(dataAsBit CCSID 1208);
+
+		MOVE envConfigRef TO envRef.Config.JSON.Data.(JSON.Array)ConfigParams.Item;
+		
+		WHILE (LASTMOVE(envConfigRef))DO	
+			SET envRef.ConfigParams.Route[envConfigRef.Sequence].EndpointName = envConfigRef.EndpointName;
+			SET envRef.ConfigParams.Route[envConfigRef.Sequence].ApplicationName = envConfigRef.ApplicationName;
+			MOVE envConfigRef NEXTSIBLING REPEAT TYPE NAME;
+		END WHILE;
+		
+		RETURN TRUE;
+	
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

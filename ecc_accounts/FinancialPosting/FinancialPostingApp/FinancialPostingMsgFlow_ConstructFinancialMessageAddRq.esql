@@ -1,0 +1,138 @@
+DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+DECLARE ns NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+DECLARE open NAMESPACE 'http://www.openuri.org/';
+
+CREATE COMPUTE MODULE FinancialPostingMsgFlow_ConstructFinancialMessageAddRq
+	
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		-- CALL CopyMessageHeaders();
+		-- CALL CopyEntireMessage();
+		SET OutputLocalEnvironment=InputLocalEnvironment;
+		
+		DECLARE envRef,envHeaderRef,envFinPostRq,envDBAcctRef,envCRAcctRef,envLogRef REFERENCE TO Environment.Variables;
+		DECLARE outRef,outRootRef,outReqRef,OutFinMsgRef
+	  	,OutFinMsgEntryRef 	REFERENCE TO OutputRoot;
+	  	
+	 	MOVE envLogRef TO Environment.Variables.XMLNSC.ServiceData.AuditEntries;
+		MOVE envHeaderRef  TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_HEADER;
+		MOVE envFinPostRq TO InputRoot.XMLNSC.ServiceData.SourceData.XMLNSC.ns:eAI_MESSAGE.ns:eAI_BODY.ns:eAI_REQUEST.ns:financialPostingRequest;
+		
+		DECLARE clientChannel CHARACTER envHeaderRef.ns:clientChannel;
+	    SET  OutputLocalEnvironment.Variables.Cache = NULL;
+		SET OutputLocalEnvironment.Variables.Cache.Values[1] = clientChannel;
+		DECLARE refValues REFERENCE TO OutputLocalEnvironment.Variables.Cache;
+		CALL CommonServicesLib.CACHE(clientChannel,'CHANNELSERVICEID','select * from CHANNELSERVICEID where CHANNEL = ?', refValues, envRef);
+		
+		--SET Environment.Variables.CHANNELSERVICE[] = PASSTHRU('select * from CHANNELSERVICEID where CHANNEL = ? ',TRIM(InputRoot.XMLNSC.ns1:eAI_MESSAGE.ns1:eAI_HEADER.ns1:clientChannel) );
+		IF EXISTS(envRef.CHANNELSERVICEID.{clientChannel}[])THEN
+			IF envRef.Data.RunningMode[1].Mode ='D' THEN
+				SET OutputLocalEnvironment.Variables.CHANSERVICEID=envRef.CHANNELSERVICEID.{clientChannel}.SIDDAY;
+			ELSE
+				SET OutputLocalEnvironment.Variables.CHANSERVICEID=envRef.CHANNELSERVICEID.{clientChannel}.SIDNIGHT;					
+			END IF;					
+		END IF;			
+		IF OutputLocalEnvironment.Variables.CHANSERVICEID IS NULL THEN
+			SET OutputLocalEnvironment.Variables.CHANSERVICEID=800 ;					
+		END IF;	
+		SET envRef.CHANNELSERVICEID = NULL;
+		
+		CREATE LASTCHILD OF outRootRef AS outRef	DOMAIN 'XMLNSC';
+	  	CREATE LASTCHILD OF outRef 	   AS outReqRef NAME 'IFX';
+	  	
+	  	SET outReqRef.SignonRq.ClientDt		= envFinPostRq.ns:requestTime;		
+		SET outReqRef.SignonRq.ClientApp	= envHeaderRef.ns:clientChannel;
+		SET outReqRef.SignonRq.RqUID		= envFinPostRq.ns:referenceNum;
+		SET outReqRef.BankSvcRq.RqUID		= envFinPostRq.ns:referenceNum;
+		SET outReqRef.BankSvcRq.FinancialMessageAddRq.RqUID					=	envFinPostRq.ns:referenceNum;
+		SET outReqRef.BankSvcRq.FinancialMessageAddRq."ws.its_ServiceId"	=	OutputLocalEnvironment.Variables.CHANSERVICEID;
+		
+		MOVE envDBAcctRef  TO envFinPostRq.ns:debitAccount;		
+		MOVE OutFinMsgRef TO outReqRef.BankSvcRq.FinancialMessageAddRq;
+		
+		WHILE LASTMOVE(envDBAcctRef) DO
+			CREATE LASTCHILD OF OutFinMsgRef AS OutFinMsgEntryRef NAME 'FinancialEntry';
+			SET OutFinMsgEntryRef.AcctId	= envDBAcctRef.ns:acctNumber;
+			SET OutFinMsgEntryRef.ApplType	= envDBAcctRef.ns:acctType;
+			SET OutFinMsgEntryRef.AcctType	= envDBAcctRef.ns:acctSubType;
+			SET OutFinMsgEntryRef.CurCode	= envDBAcctRef.ns:currencyCode;
+			SET OutFinMsgEntryRef.Amt		= envDBAcctRef.ns:amount;
+			
+			IF envDBAcctRef.ns:force	= 'Y' THEN
+				SET OutFinMsgEntryRef.EntryType	= 'FDR';
+			ELSE
+				SET OutFinMsgEntryRef.EntryType	= 'DR'; 
+			END IF;
+			
+			IF EXISTS(envDBAcctRef.ns:valueDate[]) AND LOWER(envDBAcctRef.ns:acctType)<>'gl' THEN
+				SET OutFinMsgEntryRef.EffDt	= envDBAcctRef.ns:valueDate;
+			ELSE
+				SET OutFinMsgEntryRef.EffDt	= envRef.Data.RunningMode[1].EffectiveDate; 
+			END IF;
+			
+			SET OutFinMsgEntryRef.Description= envDBAcctRef.ns:desc;	
+		
+		MOVE envDBAcctRef NEXTSIBLING REPEAT TYPE NAME;
+		END WHILE;
+		
+		
+		
+		
+		MOVE envCRAcctRef TO envFinPostRq.ns:creditAccount;
+		WHILE LASTMOVE(envCRAcctRef) DO
+			CREATE LASTCHILD OF OutFinMsgRef AS OutFinMsgEntryRef NAME 'FinancialEntry';
+			SET OutFinMsgEntryRef.AcctId		= envCRAcctRef.ns:acctNumber;
+			SET OutFinMsgEntryRef.ApplType	    = envCRAcctRef.ns:acctType;
+			SET OutFinMsgEntryRef.AcctType	    = envCRAcctRef.ns:acctSubType;
+			SET OutFinMsgEntryRef.CurCode		= envCRAcctRef.ns:currencyCode;
+			SET OutFinMsgEntryRef.Amt			= envCRAcctRef.ns:amount;
+			SET OutFinMsgEntryRef.EntryType		= 'CR'; 
+			
+			IF EXISTS(envCRAcctRef.ns:valueDate[]) AND LOWER(envCRAcctRef.ns:acctType)<>'gl' THEN
+				SET OutFinMsgEntryRef.EffDt	  = envCRAcctRef.ns:valueDate;
+			ELSE
+				SET OutFinMsgEntryRef.EffDt	  = envRef.Data.RunningMode[1].EffectiveDate; 
+			END IF;
+			
+			SET OutFinMsgEntryRef.Description = envCRAcctRef.ns:desc;
+			
+			
+		MOVE envCRAcctRef NEXTSIBLING REPEAT TYPE NAME;
+		END WHILE;
+		
+		SET outReqRef.BankSvcRq.FinancialMessageAddRq.BankInfo.BranchId=InputLocalEnvironment.Variables.BranchNo;
+		SET OutFinMsgRef.RefInfo.RefId		= envFinPostRq.ns:referenceNum;
+		
+		IF envRef.Data.RunningMode[1].Mode		= 'D' THEN
+			SET OutFinMsgRef.OptSupt	= 'OnlineTrans';
+		ELSE 
+			SET OutFinMsgRef.OptSupt	= 'MemoTrans';
+		END IF;
+		
+		
+		-- Build IFX Request
+		DECLARE blobMsg BLOB ASBITSTREAM(OutputRoot.*[<1],1208 );
+		DECLARE blobMsgChar CHAR CAST(blobMsg AS CHAR CCSID 1208);
+		DELETE FIELD OutputRoot.XMLNSC;
+		CREATE LASTCHILD OF OutputRoot AS outRef DOMAIN 'XMLNSC';
+		CREATE FIELD outRef.soapenv:Envelope.soapenv:Body AS outRef;
+ 		SET outRef.open:adaptorService.(XMLNSC.CDataField)open:ifxMessage = blobMsgChar;		
+		--
+		
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

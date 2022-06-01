@@ -1,0 +1,42 @@
+
+DECLARE OperationName EXTERNAL CHARACTER '';
+CREATE COMPUTE MODULE CF_FinancialPostingMsgFlow_IfxApiRouter_SetDetinationURL
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		DECLARE envRef, envLogRef	REFERENCE TO Environment.Variables;
+		MOVE envLogRef TO Environment.Variables.XMLNSC.ServiceData.AuditEntries;
+		CALL CopyMessageHeaders();
+		CALL CopyEntireMessage();
+	--	CALL CommonServicesLib.AddProviderReqToAudit(envLogRef,InputRoot.XMLNSC,'IFX',OperationName,CAST(CURRENT_TIMESTAMP AS CHARACTER FORMAT 'yyyy-MM-dd-HH:mm:ss:SSSS'));
+		--
+		SET  OutputLocalEnvironment.Variables.Cache = NULL;
+		SET OutputLocalEnvironment.Variables.Cache.Values[1] = 'IFX';
+		DECLARE refValues REFERENCE TO OutputLocalEnvironment.Variables.Cache;
+		CALL CommonServicesLib.CACHE('IFX','BACKENDSYSTEM','SELECT * FROM BACKENDSYSTEM WHERE SYSTEMID=?',refValues,envRef);
+ 		--
+		IF envRef.BACKENDSYSTEM.IFX.URL is NOT NULL 
+		THEN
+			SET OutputLocalEnvironment.Destination.HTTP.RequestURL   = envRef.BACKENDSYSTEM.IFX.URL;	
+			SET OutputLocalEnvironment.Destination.HTTP.Timeout  	 = envRef.BACKENDSYSTEM.IFX.TIMEOUT;	
+		ELSE
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;			
+		END IF;
+		SET envRef.BACKENDSYSTEM = NULL;
+		RETURN TRUE;
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+END MODULE;

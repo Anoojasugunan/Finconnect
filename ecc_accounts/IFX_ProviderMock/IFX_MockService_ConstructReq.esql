@@ -1,0 +1,17 @@
+
+DECLARE soapenv NAMESPACE 'http://schemas.xmlsoap.org/soap/envelope/';
+DECLARE open NAMESPACE 'http://www.openuri.org/';
+
+CREATE COMPUTE MODULE IFX_MockService_ConstructReq
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		
+		DECLARE outRef REFERENCE TO OutputRoot;
+		CREATE FIELD OutputRoot.XMLNSC.soapenv:Envelope.soapenv:Body.open:adaptorServiceResponse AS outRef;       
+        DECLARE ifxRspMsg CHARACTER '<IFX><BankSvcRs><RqUID>OCI8261003722889991</RqUID><FinancialMessageAddRs><RqUID>OCI8261003722889991</RqUID><Status><StatusCode>0</StatusCode><Severity>Info</Severity><StatusDesc>Success</StatusDesc></Status><AuthCode>1574229327</AuthCode><RefInfo><RefID>OCI8261003722889991</RefID></RefInfo></FinancialMessageAddRs></BankSvcRs></IFX>';
+		SET outRef.open:adaptorServiceResult = ifxRspMsg;
+
+		RETURN TRUE;
+	END;
+	
+END MODULE;

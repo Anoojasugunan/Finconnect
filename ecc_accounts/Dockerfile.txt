@@ -1,0 +1,20 @@
+FROM default-route-openshift-image-registry.apps.ocp4.vismaya.lan/ace/ibm-ace-mqclient-server-prod:11.0.0.6.1-amd64
+
+COPY CheckClearingApp /home/aceuser/CheckClearingApp
+COPY CheckInwardClearingApp /home/aceuser/CheckInwardClearingApp
+COPY PostChargeApp /home/aceuser/PostChargeApp
+COPY CommonServicesLib /home/aceuser/CommonServicesLib
+COPY FinancialPosting /home/aceuser/FinancialPosting
+COPY IFX_ProviderMock /home/aceuser/IFX_ProviderMock
+
+
+USER root
+RUN bash -c 'chown -R aceuser:aceuser /home/aceuser/'
+USER aceuser
+
+RUN bash -c 'mqsipackagebar -w /home/aceuser/ -a /home/aceuser/bars/CheckClearingApp.bar -k CheckClearingApp CheckInwardClearingApp PostChargeApp FinancialPosting IFX_ProviderMock -y CommonServicesLib'
+
+#validate the bar. it is correctly build or not
+RUN bash -c 'mqsicreateworkdir /home/aceuser/ace-server && mqsibar -w /home/aceuser/ace-server -a /home/aceuser/bars/CheckClearingApp.bar -c'
+
+RUN ace_compile_bars.sh

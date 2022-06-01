@@ -1,0 +1,72 @@
+BROKER SCHEMA CommonServicesLib
+
+
+
+CREATE COMPUTE MODULE CF_SetRouteforErrorHandler
+	DECLARE ns1 EXTERNAL NAMESPACE 'urn:esbbank.com/gbo/xml/schemas/v1_0/';
+	--DECLARE isRequest EXTERNAL CHARACTER '';
+	CREATE FUNCTION Main() RETURNS BOOLEAN
+	BEGIN
+		CALL CopyMessageHeaders();
+		
+	--	CALL CopyEntireMessage();
+		DECLARE envRef,envAuditRef,envReqRef REFERENCE TO Environment.Variables;
+				
+		DECLARE start REFERENCE TO InputRoot.XMLNSC.ExceptionData.*[1];
+		DECLARE test CHARACTER FIELDNAME(start); 
+		SET OutputExceptionList 			= InputRoot.XMLNSC.ExceptionData;
+		SET envRef.MQRFH2	= InputRoot.MQRFH2;
+		SET envRef.MQMD		= InputRoot.MQMD;
+		SET OutputRoot.MQMD.ReplyToQ		 	 = envRef.Reply.ReplyToQ;
+		
+		MOVE envReqRef TO envRef.XMLNSC.ServiceData.SourceData;
+		SET envRef.referenceNum  		
+											= COALESCE(envReqRef.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REQUEST.*[1].*:referenceNum,InputRoot.MQRFH2.usr.referenceNum);
+		SET envRef.requestTime  		
+											= COALESCE(envReqRef.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REQUEST.*[1].*:requestTime,InputRoot.MQRFH2.usr.requestTime);
+		
+		IF FIELDNAME(start) = 'ParserException' THEN
+			SET envRef.referenceNum  	= envReqRef.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REQUEST.*[1].*:referenceNum;			
+			-- setting return codes
+			SET envRef.returnCode 		= '1104';
+			SET envRef.returnCodeDesc	= 'Error while parsing message';
+			SET envRef.isParseErr		= 'Y';	
+			
+			MOVE envAuditRef TO envRef.XMLNSC.AuditEntries;
+		    SET  envAuditRef.ExceptionDetails =  envRef.isParseErr || '-'||envRef.returnCode || '-' || envRef.returnCodeDesc;
+		END IF;
+		
+		PROPAGATE TO TERMINAL 'out' DELETE NONE;
+		PROPAGATE TO TERMINAL 'out1' DELETE NONE;
+		RETURN FALSE;	
+						
+		/*ELSE
+			SET envRef.referenceNum  	= InputRoot.XMLNSC.*:eAI_MESSAGE.*:eAI_BODY.*:eAI_REQUEST.*[1].*:referenceNum;			
+			
+			SET envRef.returnCode 		= '1104';
+			SET envRef.returnCodeDesc	= 'Error while parsing message';
+			SET envRef.isParseErr		= 'Y';	
+			
+			MOVE envAuditRef TO envRef.XMLNSC.AuditEntries;
+		    SET  envAuditRef.ExceptionDetails =  envRef.isParseErr || '-'||envRef.returnCode || '-' || envRef.returnCodeDesc;
+		 
+			PROPAGATE TO TERMINAL 'out1';
+			RETURN FALSE;	*/		
+				 		 				
+	END;
+
+	CREATE PROCEDURE CopyMessageHeaders() BEGIN
+		DECLARE I INTEGER 1;
+		DECLARE J INTEGER;
+		SET J = CARDINALITY(InputRoot.*[]);
+		WHILE I < J DO
+			SET OutputRoot.*[I] = InputRoot.*[I];
+			SET I = I + 1;
+		END WHILE;
+	END;
+
+	CREATE PROCEDURE CopyEntireMessage() BEGIN
+		SET OutputRoot = InputRoot;
+	END;
+	
+END MODULE;
