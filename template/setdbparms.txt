@@ -1,0 +1,3 @@
+ESBDB sa P@ssw0rd123
+mq::QMIdentity admin P@ssw0rd
+setdbparms::truststore notused truststorepwd
